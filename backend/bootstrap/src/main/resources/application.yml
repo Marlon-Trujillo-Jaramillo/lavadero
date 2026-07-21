@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: lavadero-backend
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+  flyway:
+    enabled: true
+    # Barre `db/migration` en TODOS los jars del classpath: cubre tanto
+    # V1__tenant_management.sql (módulo tenant-management) como
+    # V2__identity_access.sql (módulo identity-access).
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+lavadero:
+  security:
+    jwt:
+      issuer: lavadero
+      access-token-ttl: 15m
+      # `secret` se define por perfil (ver application-dev.yml). NUNCA
+      # hardcodear un secreto de producción aquí ni versionarlo: en
+      # producción debe venir de una variable de entorno
+      # (LAVADERO_SECURITY_JWT_SECRET) respaldada por un secret manager.

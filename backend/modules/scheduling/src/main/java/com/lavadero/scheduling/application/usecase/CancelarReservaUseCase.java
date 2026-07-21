@@ -1,0 +1,40 @@
+package com.lavadero.scheduling.application.usecase;
+
+import com.lavadero.scheduling.application.command.CancelarReservaCommand;
+import com.lavadero.scheduling.application.dto.ReservaDto;
+import com.lavadero.scheduling.domain.model.Reserva;
+import com.lavadero.scheduling.domain.repository.ReservaRepository;
+import com.lavadero.shared.application.UseCase;
+import com.lavadero.shared.application.exception.ForbiddenException;
+import com.lavadero.shared.application.exception.NotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Cancela una reserva PENDIENTE — solo el cliente dueño o personal del lavadero pueden hacerlo. */
+@Service
+public class CancelarReservaUseCase implements UseCase<CancelarReservaCommand, ReservaDto> {
+
+  private final ReservaRepository reservaRepository;
+
+  public CancelarReservaUseCase(ReservaRepository reservaRepository) {
+    this.reservaRepository = reservaRepository;
+  }
+
+  @Override
+  @Transactional
+  public ReservaDto execute(CancelarReservaCommand input) {
+    Reserva reserva =
+        reservaRepository
+            .findById(input.reservaId())
+            .orElseThrow(() -> NotFoundException.de("Reserva", input.reservaId()));
+
+    boolean esDuenio = reserva.getClienteId().equals(input.solicitanteId());
+    if (!esDuenio && !input.solicitanteEsStaff()) {
+      throw new ForbiddenException(
+          "Solo el cliente dueño de la reserva o el personal del lavadero pueden cancelarla");
+    }
+
+    reserva.cancelar();
+    return ReservaMapper.toDto(reservaRepository.save(reserva));
+  }
+}

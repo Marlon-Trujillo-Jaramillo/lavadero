@@ -1,0 +1,119 @@
+# Infraestructura de desarrollo local para el backend "Lavadero".
+#
+# Uso: desde la raíz del repo, `docker compose -f infra/docker-compose.yml up -d`.
+#
+# IMPORTANTE: este archivo vive en la raíz (`infra/`), NO dentro de
+# `backend/`, porque es infraestructura compartida del repo completo (otros
+# componentes, como `admin_web`, también podrían necesitarla).
+#
+# No toca `mobile_app/`, `admin_web/` ni `packages/`: esas carpetas se
+# gestionan aparte (Flutter/Dart).
+
+name: lavadero
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lavadero-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lavadero
+      POSTGRES_USER: lavadero
+      POSTGRES_PASSWORD: lavadero
+    ports:
+      - "5432:5432"
+    volumes:
+      - lavadero_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lavadero -d lavadero"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: lavadero-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - lavadero_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: lavadero-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: lavadero
+      MINIO_ROOT_PASSWORD: lavadero123
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # Consola web
+    volumes:
+      - lavadero_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Crea automáticamente el bucket por defecto al arrancar (contenedor de
+  # un solo uso: corre `mc mb` y termina). Evita tener que crearlo a mano
+  # en cada entorno nuevo.
+  minio-init:
+    image: minio/mc:latest
+    container_name: lavadero-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 lavadero lavadero123 &&
+      (mc mb local/lavadero-uploads || true) &&
+      mc anonymous set download local/lavadero-uploads
+      "
+    restart: "no"
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: lavadero-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # UI web
+
+  # Descomentar cuando se quiera correr el backend también dentro de
+  # Docker Compose (para desarrollo normalmente se corre con
+  # `./gradlew :bootstrap:bootRun` fuera de Docker, apuntando a los
+  # servicios de arriba en localhost).
+  # backend:
+  #   build:
+  #     context: ../backend
+  #     dockerfile: docker/backend.Dockerfile
+  #   container_name: lavadero-backend
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: dev
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/lavadero
+  #     SPRING_DATASOURCE_USERNAME: lavadero
+  #     SPRING_DATASOURCE_PASSWORD: lavadero
+  #     SPRING_REDIS_HOST: redis
+  #     LAVADERO_SECURITY_JWT_SECRET: ${LAVADERO_SECURITY_JWT_SECRET:?establece un secreto en tu .env local}
+  #   ports:
+  #     - "8080:8080"
+
+volumes:
+  lavadero_postgres_data:
+  lavadero_redis_data:
+  lavadero_minio_data:

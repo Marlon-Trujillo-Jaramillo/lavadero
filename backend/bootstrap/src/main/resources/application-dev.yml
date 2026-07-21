@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    # Rol de aplicación NO-superusuario (ver V3__app_role.sql): las queries
+    # de negocio deben pasar por RLS, y Postgres bypasea RLS para
+    # superusuarios sin excepción.
+    url: jdbc:postgresql://localhost:5432/lavadero
+    username: lavadero_app
+    password: lavadero_app
+  flyway:
+    # Las migraciones sí necesitan el rol superusuario (CREATE TABLE, CREATE
+    # ROLE, CREATE POLICY): distinto del datasource de runtime de arriba.
+    url: jdbc:postgresql://localhost:5432/lavadero
+    user: lavadero
+    password: lavadero
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+lavadero:
+  security:
+    jwt:
+      # Clave de DESARROLLO únicamente (256 bits, Base64), generada con
+      # `openssl rand -base64 32`. NUNCA reusar este valor en producción:
+      # ahí debe inyectarse vía LAVADERO_SECURITY_JWT_SECRET desde un
+      # secret manager.
+      secret: xGjc7D+oGnh9SJM+CKpXuQ/U/i2LC+NER9FQiGqbDCc=
+
+logging:
+  level:
+    com.lavadero: DEBUG

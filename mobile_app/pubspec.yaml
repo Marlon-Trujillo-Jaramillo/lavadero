@@ -1,0 +1,38 @@
+name: mobile_app
+description: >
+  Lavadero SaaS - app móvil (Flutter) para clientes finales y empleados de un
+  lavadero. Un solo binario; el rol (CLIENTE/EMPLEADO) se decide en runtime
+  tras el login.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Estado + DI: ver justificación en app/di/README (Riverpod).
+  flutter_riverpod: ^2.6.1
+
+  # Navegación declarativa con guards de redirect por estado de auth.
+  go_router: ^14.8.1
+
+  # Cliente HTTP (tipo re-exportado por lavadero_core; se usa directamente
+  # aquí solo donde el tipo Dio aparece en firmas, p.ej. providers de DI).
+  dio: ^5.7.0
+
+  lavadero_core:
+    path: ../packages/lavadero_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
