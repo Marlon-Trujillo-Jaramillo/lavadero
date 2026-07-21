@@ -1,0 +1,35 @@
+name: lavadero_core
+description: >
+  Paquete compartido del SaaS Lavadero: cliente HTTP (Dio) con interceptores de
+  auth/refresh/tenant, DTOs escritos a mano (sin codegen), almacenamiento seguro
+  de tokens, AuthRepository, design tokens y widgets básicos compartidos entre
+  mobile_app y admin_web.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.24.0"
+
+# Nota de diseño: este paquete depende de Flutter (no es un package Dart puro).
+# Se evaluó separarlo en dos paquetes (core sin Flutter + ui con Flutter), pero
+# se descartó por ahora: los dos únicos consumidores (mobile_app, admin_web) son
+# apps Flutter, TokenStorage ya requiere flutter_secure_storage (plugin Flutter),
+# y theme/widgets necesitan el framework Flutter. Separar hoy sería overhead sin
+# beneficio real. Si en el futuro aparece un consumidor 100% Dart (p.ej. un CLI
+# o un generador de código), se puede extraer lavadero_core_base sin romper la
+# API pública actual.
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.7.0
+  flutter_secure_storage: ^9.2.4
+  meta: ^1.15.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  mocktail: ^1.0.4
+
+flutter:
