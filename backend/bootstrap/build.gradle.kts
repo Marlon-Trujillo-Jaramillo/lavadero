@@ -27,6 +27,18 @@ dependencies {
     // que lo declaran como `implementation` y por tanto no lo exponen) para
     // que `GlobalExceptionHandler` (@RestControllerAdvice) compile.
     implementation("org.springframework.boot:spring-boot-starter-web")
+    // Ídem: `@EnableJpaRepositories`/`@EntityScan` en Application.java (ver
+    // su Javadoc) necesitan estas clases en el classpath de compilación de
+    // este módulo, no solo transitivamente.
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+
+    // Monitoreo de errores (ver docs/specs/004-observabilidad.md). Solo en
+    // `bootstrap` (el DSN es de todo el proceso, no de cada módulo). Si
+    // `sentry.dsn` está vacío (por defecto, sin cuenta de Sentry creada
+    // todavía) el SDK no envía nada — arranque/tests no dependen de tener
+    // una cuenta real.
+    val sentryVersion: String by project
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:$sentryVersion")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")

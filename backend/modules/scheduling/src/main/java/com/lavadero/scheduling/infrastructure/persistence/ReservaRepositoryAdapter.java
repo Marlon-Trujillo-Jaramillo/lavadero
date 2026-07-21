@@ -2,6 +2,8 @@ package com.lavadero.scheduling.infrastructure.persistence;
 
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.ReservaEstado;
+import com.lavadero.scheduling.domain.model.ResumenVentas;
+import com.lavadero.scheduling.domain.model.ServicioPopular;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.shared.domain.Money;
 import java.time.Instant;
@@ -60,6 +62,20 @@ class ReservaRepositoryAdapter implements ReservaRepository {
     return jpaRepository.findByClienteId(clienteId).stream()
         .map(ReservaRepositoryAdapter::toDomain)
         .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public ResumenVentas obtenerResumenVentas(Instant desde, Instant hasta) {
+    var totales = jpaRepository.obtenerTotales(desde, hasta);
+    var serviciosMasPedidos =
+        jpaRepository.obtenerServiciosMasPedidos(desde, hasta).stream()
+            .map(p -> new ServicioPopular(p.getServicioId(), p.getNombre(), p.getCantidad()))
+            .toList();
+    return new ResumenVentas(
+        Money.de(totales.getIngresos(), totales.getMoneda()),
+        totales.getTotal().intValue(),
+        serviciosMasPedidos);
   }
 
   @Override

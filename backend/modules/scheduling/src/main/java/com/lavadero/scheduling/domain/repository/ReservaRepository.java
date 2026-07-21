@@ -1,6 +1,7 @@
 package com.lavadero.scheduling.domain.repository;
 
 import com.lavadero.scheduling.domain.model.Reserva;
+import com.lavadero.scheduling.domain.model.ResumenVentas;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,12 @@ public interface ReservaRepository {
   List<Reserva> findPorSucursalYRango(UUID sucursalId, Instant desde, Instant hasta);
 
   List<Reserva> findPorCliente(UUID clienteId);
+
+  /**
+   * Agrega las reservas COMPLETADA del tenant actual en [desde, hasta) — vista de
+   * dashboard/reportes.
+   */
+  ResumenVentas obtenerResumenVentas(Instant desde, Instant hasta);
 
   Reserva save(Reserva reserva);
 }

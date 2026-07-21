@@ -8,18 +8,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 /**
  * Entidad JPA de {@code Reserva}. {@code fechaHoraFin} se guarda calculada (denormalizada) al
  * momento de persistir, en vez de derivarla en cada lectura, para poder hacer la consulta de
  * solapamiento de horarios ({@code ReservaJpaRepository}) directamente en SQL — evita traer TODAS
  * las reservas de la sucursal a memoria para filtrar ahí, que no escala.
+ *
+ * <p>El {@code @FilterDef} vive UNA sola vez, en {@code SucursalJpaEntity} (tenant-management):
+ * Hibernate rechaza (error de arranque) que dos entidades del mismo persistence unit declaren un
+ * {@code @FilterDef} con el mismo nombre — aquí solo se referencia por nombre con {@code @Filter}.
  */
 @Entity
 @Table(name = "reserva")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class ReservaJpaEntity {
 

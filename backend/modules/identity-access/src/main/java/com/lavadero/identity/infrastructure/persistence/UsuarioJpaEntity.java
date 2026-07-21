@@ -15,8 +15,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 /**
  * Entidad JPA de {@code Usuario}. Igual que {@code SucursalJpaEntity} (tenant-management), lleva
@@ -24,8 +22,10 @@ import org.hibernate.annotations.ParamDef;
  *
  * <ol>
  *   <li>Row Level Security de Postgres (V2__identity_access.sql).
- *   <li>Este {@code @FilterDef}/{@code @Filter} de Hibernate, habilitado a nivel de sesión por
- *       {@code TenantAwareTransactionAspect}.
+ *   <li>Este {@code @Filter} de Hibernate, habilitado a nivel de sesión por {@code
+ *       TenantAwareTransactionAspect}. El {@code @FilterDef} vive UNA sola vez, en {@code
+ *       SucursalJpaEntity} (tenant-management) — Hibernate rechaza que dos entidades del mismo
+ *       persistence unit lo declaren con el mismo nombre.
  * </ol>
  *
  * <p>A diferencia de Sucursal, {@code tenantId} es NULLABLE (solo nulo para SUPER_ADMIN, ver
@@ -36,7 +36,6 @@ import org.hibernate.annotations.ParamDef;
  */
 @Entity
 @Table(name = "usuario")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class UsuarioJpaEntity {
 

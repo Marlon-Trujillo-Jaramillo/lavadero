@@ -1,14 +1,40 @@
 import 'package:admin_web/app/admin_shell.dart';
+import 'package:admin_web/app/di/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lavadero_core/lavadero_core.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockSchedulingRepository extends Mock implements SchedulingRepository {}
 
 UserProfile _userWith(List<UserRole> roles) => UserProfile(
       id: 'u1',
       email: 'admin@example.com',
       roles: roles,
     );
+
+/// `AdminShell` muestra `DashboardScreen` por defecto (índice 0), que llama a
+/// `schedulingRepositoryProvider` al construirse — se sobreescribe con un mock
+/// para que estos tests de navegación no dependan de red.
+ProviderScope _appConDashboardMockeado(Widget home) {
+  final schedulingRepository = MockSchedulingRepository();
+  when(() => schedulingRepository.resumenVentas(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      )).thenAnswer(
+    (_) async => const ResumenVentas(
+      ingresosTotales: 0,
+      moneda: 'COP',
+      totalReservasCompletadas: 0,
+      serviciosMasPedidos: [],
+    ),
+  );
+  return ProviderScope(
+    overrides: [schedulingRepositoryProvider.overrideWithValue(schedulingRepository)],
+    child: MaterialApp(home: home),
+  );
+}
 
 void main() {
   Future<void> useDesktopSurface(WidgetTester tester) async {
@@ -26,11 +52,7 @@ void main() {
       (tester) async {
     await useDesktopSurface(tester);
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: AdminShell(user: _userWith([UserRole.adminTenant])),
-        ),
-      ),
+      _appConDashboardMockeado(AdminShell(user: _userWith([UserRole.adminTenant]))),
     );
 
     expect(find.text('Dashboard'), findsWidgets);
@@ -40,11 +62,7 @@ void main() {
   testWidgets('shows the "Tenants" section for a super-admin', (tester) async {
     await useDesktopSurface(tester);
     await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: AdminShell(user: _userWith([UserRole.superAdmin])),
-        ),
-      ),
+      _appConDashboardMockeado(AdminShell(user: _userWith([UserRole.superAdmin]))),
     );
 
     expect(find.text('Tenants'), findsWidgets);

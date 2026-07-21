@@ -10,8 +10,8 @@ import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 
 /**
- * Entidad JPA de {@code Sucursal}: primera (y en esta fase única) entidad de negocio con {@code
- * tenant_id}. Lleva DOS capas de aislamiento:
+ * Entidad JPA de {@code Sucursal}: primera entidad de negocio con {@code tenant_id}. Lleva DOS
+ * capas de aislamiento:
  *
  * <ol>
  *   <li>Row Level Security de Postgres (V1__tenant_management.sql), la barrera "real" e
@@ -20,6 +20,12 @@ import org.hibernate.annotations.ParamDef;
  *       {@code TenantAwareTransactionAspect} (módulo identity-access) leyendo el mismo valor de
  *       {@code TenantContext} — defensa en profundidad, no la única barrera.
  * </ol>
+ *
+ * <p>El {@code @FilterDef} de aquí es la ÚNICA declaración de {@code tenantFilter} en toda la app:
+ * las demás entidades tenant-scoped ({@code UsuarioJpaEntity}, {@code ServicioJpaEntity}, {@code
+ * ReservaJpaEntity}) solo la referencian con {@code @Filter} (sin repetir {@code @FilterDef}) —
+ * Hibernate rechaza en arranque que dos entidades del mismo persistence unit definan un filtro con
+ * el mismo nombre.
  */
 @Entity
 @Table(name = "sucursal")

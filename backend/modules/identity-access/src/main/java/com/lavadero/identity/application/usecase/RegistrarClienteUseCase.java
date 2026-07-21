@@ -8,6 +8,7 @@ import com.lavadero.identity.domain.model.Usuario;
 import com.lavadero.identity.domain.repository.UsuarioRepository;
 import com.lavadero.shared.application.UseCase;
 import com.lavadero.shared.application.exception.ValidationException;
+import com.lavadero.shared.security.TenantContext;
 import com.lavadero.tenant.application.dto.TenantResumenDto;
 import com.lavadero.tenant.application.usecase.ObtenerTenantPorSlugUseCase;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,6 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Auto-registro público de un cliente nuevo dentro de un tenant (header {@code X-Tenant-Slug}
  * obligatorio).
+ *
+ * <p>Endpoint público: no hay JWT, así que {@code TenantResolutionFilter} no puebla {@link
+ * TenantContext} (solo lee del JWT ya validado). El tenant se resuelve aquí por slug; hay que
+ * fijarlo explícitamente en {@link TenantContext} antes de tocar `usuario` (RLS + FORCE), igual que
+ * {@code CrearTenantUseCase} con `sucursal`.
  */
 @Service
 public class RegistrarClienteUseCase implements UseCase<RegistrarClienteCommand, AuthResultDto> {
@@ -50,17 +56,22 @@ public class RegistrarClienteUseCase implements UseCase<RegistrarClienteCommand,
     TenantResumenDto tenant = obtenerTenantPorSlugUseCase.execute(input.tenantSlug());
     String email = input.email().toLowerCase();
 
-    if (usuarioRepository.existsByEmailAndTenantId(email, tenant.id())) {
-      throw new ValidationException("Ya existe un usuario con ese email en este tenant");
+    TenantContext.set(tenant.id());
+    try {
+      if (usuarioRepository.existsByEmailAndTenantId(email, tenant.id())) {
+        throw new ValidationException("Ya existe un usuario con ese email en este tenant");
+      }
+
+      String passwordHash = passwordEncoder.encode(input.password());
+      Usuario usuario = Usuario.cliente(tenant.id(), email, input.nombre(), passwordHash);
+      usuarioRepository.save(usuario);
+
+      eventPublisher.publishEvent(
+          UsuarioRegistradoEvent.of(usuario.getId(), tenant.id(), usuario.getEmail()));
+
+      return tokenIssuer.emitirParNuevo(usuario);
+    } finally {
+      TenantContext.clear();
     }
-
-    String passwordHash = passwordEncoder.encode(input.password());
-    Usuario usuario = Usuario.cliente(tenant.id(), email, input.nombre(), passwordHash);
-    usuarioRepository.save(usuario);
-
-    eventPublisher.publishEvent(
-        UsuarioRegistradoEvent.of(usuario.getId(), tenant.id(), usuario.getEmail()));
-
-    return tokenIssuer.emitirParNuevo(usuario);
   }
 }

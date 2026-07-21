@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/reserva.dart';
+import '../models/resumen_ventas.dart';
 import '../models/sucursal.dart';
 import '../network/api_exception.dart';
 
@@ -69,6 +70,22 @@ class SchedulingRepository {
       return (response.data ?? [])
           .map((json) => Reserva.fromJson(json as Map<String, dynamic>))
           .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Admin: resumen de ventas (ingresos, reservas completadas, servicios más pedidos) en un rango.
+  Future<ResumenVentas> resumenVentas({required DateTime desde, required DateTime hasta}) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/agenda/reportes/resumen',
+        queryParameters: {
+          'desde': desde.toIso8601String().substring(0, 10),
+          'hasta': hasta.toIso8601String().substring(0, 10),
+        },
+      );
+      return ResumenVentas.fromJson(response.data!);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

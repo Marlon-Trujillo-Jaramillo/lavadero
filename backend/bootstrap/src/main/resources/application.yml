@@ -22,10 +22,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       show-details: never
+
+# Monitoreo de errores (ver docs/specs/004-observabilidad.md). `dsn` vacío
+# (valor por defecto sin la variable de entorno) = SDK en modo no-op, no
+# rompe arranque/tests. NUNCA hardcodear un DSN real aquí: viene de
+# SENTRY_DSN, igual patrón que LAVADERO_SECURITY_JWT_SECRET.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${spring.profiles.active:default}
+  # Sampling bajo: trazas de performance mínimas, sin costo/ruido alto para
+  # el volumen de tráfico esperado en esta fase (ver ADR 0001).
+  traces-sample-rate: 0.1
 
 lavadero:
   security:
