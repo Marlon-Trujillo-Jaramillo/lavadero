@@ -25,6 +25,10 @@ dependencies:
   # aquí solo donde el tipo Dio aparece en firmas, p.ej. providers de DI).
   dio: ^5.7.0
 
+  # Monitoreo de errores (ver docs/specs/004-observabilidad.md). DSN vacío
+  # por dart-define = SDK en modo no-op, no rompe builds locales.
+  sentry_flutter: ^9.24.0
+
   lavadero_core:
     path: ../packages/lavadero_core
 

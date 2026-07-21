@@ -11,6 +11,7 @@ import com.lavadero.identity.domain.repository.UsuarioRepository;
 import com.lavadero.shared.application.UseCase;
 import com.lavadero.shared.application.exception.ForbiddenException;
 import com.lavadero.shared.application.exception.NotFoundException;
+import com.lavadero.shared.security.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
  * nuevo. Si el token recibido YA estaba revocado, es señal de reuso (robo de refresh token): se
  * revoca TODA la cadena del usuario y se responde 401 (vía {@link ForbiddenException}), forzando un
  * login limpio.
+ *
+ * <p>Endpoint público (sin JWT): {@code TenantContext} no llega poblado. {@code
+ * token.getTenantId()} (denormalizado en {@code RefreshToken}, ver su Javadoc) es lo que permite
+ * fijarlo aquí ANTES de leer {@code Usuario} por id (RLS + FORCE) sin caer en huevo-y-gallina.
  */
 @Service
 public class RefreshTokenUseCase implements UseCase<RefreshTokenCommand, AuthResultDto> {
@@ -57,14 +62,19 @@ public class RefreshTokenUseCase implements UseCase<RefreshTokenCommand, AuthRes
       throw new ForbiddenException("Refresh token expirado");
     }
 
-    Usuario usuario =
-        usuarioRepository
-            .findById(token.getUsuarioId())
-            .orElseThrow(() -> NotFoundException.de("Usuario", token.getUsuarioId()));
+    token.getTenantId().ifPresent(TenantContext::set);
+    try {
+      Usuario usuario =
+          usuarioRepository
+              .findById(token.getUsuarioId())
+              .orElseThrow(() -> NotFoundException.de("Usuario", token.getUsuarioId()));
 
-    token.revocar();
-    refreshTokenRepository.save(token);
+      token.revocar();
+      refreshTokenRepository.save(token);
 
-    return tokenIssuer.emitirRotado(usuario, token);
+      return tokenIssuer.emitirRotado(usuario, token);
+    } finally {
+      TenantContext.clear();
+    }
   }
 }

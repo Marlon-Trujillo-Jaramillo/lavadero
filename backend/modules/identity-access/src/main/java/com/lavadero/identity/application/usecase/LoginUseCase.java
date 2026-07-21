@@ -7,6 +7,7 @@ import com.lavadero.identity.domain.model.Usuario;
 import com.lavadero.identity.domain.repository.UsuarioRepository;
 import com.lavadero.shared.application.UseCase;
 import com.lavadero.shared.application.exception.ForbiddenException;
+import com.lavadero.shared.security.TenantContext;
 import com.lavadero.tenant.application.dto.TenantResumenDto;
 import com.lavadero.tenant.application.usecase.ObtenerTenantPorSlugUseCase;
 import java.util.UUID;
@@ -22,6 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>El header de tenant se usa SOLO aquí, para decidir en qué tenant autenticar; una vez emitido
  * el JWT, el tenant que importa para autorización es el que queda embebido en el claim {@code
  * tenant_id}, nunca un header (ver {@code TenantResolutionFilter} en infrastructure/security).
+ *
+ * <p>Endpoint público: sin JWT todavía, {@code TenantResolutionFilter} no puebla {@link
+ * TenantContext}. Hay que fijarlo aquí explícitamente antes de leer `usuario` (RLS + FORCE) — si
+ * no, la política nunca deja ver la fila (para tenantId nulo/SUPER_ADMIN no hace falta: la rama de
+ * la política para filas con `tenant_id IS NULL` no exige tenant en sesión).
  */
 @Service
 public class LoginUseCase implements UseCase<LoginCommand, AuthResultDto> {
@@ -47,19 +53,26 @@ public class LoginUseCase implements UseCase<LoginCommand, AuthResultDto> {
   public AuthResultDto execute(LoginCommand input) {
     UUID tenantId = resolverTenantId(input.tenantSlug());
 
-    Usuario usuario =
-        usuarioRepository
-            .findByEmailAndTenantId(input.email().toLowerCase(), tenantId)
-            .orElseThrow(() -> new ForbiddenException("Credenciales inválidas"));
-
-    if (!usuario.estaActivo()) {
-      throw new ForbiddenException("Usuario bloqueado");
+    if (tenantId != null) {
+      TenantContext.set(tenantId);
     }
-    if (!passwordEncoder.matches(input.password(), usuario.getPasswordHash())) {
-      throw new ForbiddenException("Credenciales inválidas");
-    }
+    try {
+      Usuario usuario =
+          usuarioRepository
+              .findByEmailAndTenantId(input.email().toLowerCase(), tenantId)
+              .orElseThrow(() -> new ForbiddenException("Credenciales inválidas"));
 
-    return tokenIssuer.emitirParNuevo(usuario);
+      if (!usuario.estaActivo()) {
+        throw new ForbiddenException("Usuario bloqueado");
+      }
+      if (!passwordEncoder.matches(input.password(), usuario.getPasswordHash())) {
+        throw new ForbiddenException("Credenciales inválidas");
+      }
+
+      return tokenIssuer.emitirParNuevo(usuario);
+    } finally {
+      TenantContext.clear();
+    }
   }
 
   private UUID resolverTenantId(String tenantSlug) {

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:sentry/sentry.dart';
 
 /// Excepción tipada única para todos los errores de red/API del backend.
 ///
@@ -26,7 +27,34 @@ class ApiException implements Exception {
 
   /// Construye la excepción a partir de un [DioException], intentando leer
   /// el body de error estándar del backend cuando está presente.
+  ///
+  /// También reporta a Sentry (ver docs/specs/004-observabilidad.md): un
+  /// error de servidor (5xx) o de red se captura como evento (algo
+  /// realmente roto, vale la pena una alerta); un rechazo de negocio
+  /// esperado (400 "no hay cupo", 401 login inválido, 404, etc.) solo queda
+  /// como breadcrumb — contexto útil si DESPUÉS ocurre un error real, pero
+  /// no amerita una alerta por sí solo.
   factory ApiException.fromDioException(DioException dioException) {
+    final exception = _build(dioException);
+    if (exception.isServerError || exception.isNetworkError) {
+      Sentry.captureException(exception, stackTrace: dioException.stackTrace);
+    } else {
+      Sentry.addBreadcrumb(
+        Breadcrumb(
+          category: 'api',
+          message: exception.message,
+          level: SentryLevel.warning,
+          data: {
+            if (exception.path != null) 'path': exception.path!,
+            if (exception.statusCode != null) 'statusCode': exception.statusCode!,
+          },
+        ),
+      );
+    }
+    return exception;
+  }
+
+  static ApiException _build(DioException dioException) {
     final response = dioException.response;
     if (response == null) {
       switch (dioException.type) {

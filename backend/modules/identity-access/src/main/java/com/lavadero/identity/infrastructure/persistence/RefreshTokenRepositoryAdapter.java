@@ -38,6 +38,7 @@ class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
         new RefreshTokenJpaEntity(
             refreshToken.getId(),
             refreshToken.getUsuarioId(),
+            refreshToken.getTenantId().orElse(null),
             refreshToken.getTokenHash(),
             refreshToken.getExpiraEn(),
             refreshToken.isRevocado(),
@@ -56,6 +57,7 @@ class RefreshTokenRepositoryAdapter implements RefreshTokenRepository {
     return new RefreshToken(
         entity.getId(),
         entity.getUsuarioId(),
+        entity.getTenantId(),
         entity.getTokenHash(),
         entity.getExpiraEn(),
         entity.isRevocado(),

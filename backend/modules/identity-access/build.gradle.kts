@@ -29,6 +29,11 @@ dependencies {
 
     implementation("com.bucket4j:bucket4j-core")
 
+    // Argon2PasswordEncoder (PasswordEncoderConfig) lo necesita en runtime:
+    // spring-security-crypto lo declara opcional, no lo trae por defecto.
+    val bouncyCastleVersion: String by project
+    runtimeOnly("org.bouncycastle:bcprov-jdk18on:$bouncyCastleVersion")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
 }

@@ -7,8 +7,6 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 /**
  * Entidad JPA de {@code Servicio}. Mismas dos capas de aislamiento que {@code SucursalJpaEntity}
@@ -16,10 +14,13 @@ import org.hibernate.annotations.ParamDef;
  * sesión, habilitado por {@code TenantAwareTransactionAspect} (identity-access) aunque este módulo
  * no dependa de él directamente — el aspecto se registra una sola vez para toda la app porque
  * `bootstrap` depende de `identity-access`.
+ *
+ * <p>El {@code @FilterDef} vive UNA sola vez, en {@code SucursalJpaEntity} (tenant-management):
+ * Hibernate rechaza (error de arranque) que dos entidades del mismo persistence unit declaren un
+ * {@code @FilterDef} con el mismo nombre — aquí solo se referencia por nombre con {@code @Filter}.
  */
 @Entity
 @Table(name = "servicio")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class ServicioJpaEntity {
 

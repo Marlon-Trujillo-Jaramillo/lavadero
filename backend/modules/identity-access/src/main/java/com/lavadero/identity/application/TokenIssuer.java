@@ -48,7 +48,8 @@ public class TokenIssuer {
 
     RefreshToken aPersistir =
         tokenAnterior == null
-            ? RefreshToken.nuevo(usuario.getId(), hash, expiraEn)
+            ? RefreshToken.nuevo(
+                usuario.getId(), usuario.getTenantId().orElse(null), hash, expiraEn)
             : RefreshToken.rotadoDesde(tokenAnterior, hash, expiraEn);
     refreshTokenRepository.save(aPersistir);
 
