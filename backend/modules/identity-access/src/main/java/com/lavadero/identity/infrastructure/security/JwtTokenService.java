@@ -47,6 +47,7 @@ public class JwtTokenService implements TokenService {
     this.firmaKey = Keys.hmacShaKeyFor(Base64.getDecoder().decode(properties.getSecret()));
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public String generarAccessToken(Usuario usuario) {
     Instant ahora = Instant.now();

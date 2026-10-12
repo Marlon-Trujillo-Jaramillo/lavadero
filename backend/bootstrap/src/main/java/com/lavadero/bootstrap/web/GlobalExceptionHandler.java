@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +47,18 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleForbidden(
       ForbiddenException ex, HttpServletRequest request) {
     return build(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+  }
+
+  /**
+   * `@PreAuthorize` deniega lanzando esto (Spring Security 6), no {@link ForbiddenException} — sin
+   * este handler caía en {@link #handleUnexpected}, devolviendo 500 en vez de 403 para cualquier
+   * usuario autenticado sin el rol requerido (nunca antes ejercitado con una llamada real de un rol
+   * insuficiente contra un endpoint protegido).
+   */
+  @ExceptionHandler(AuthorizationDeniedException.class)
+  public ResponseEntity<ErrorResponse> handleAuthorizationDenied(
+      AuthorizationDeniedException ex, HttpServletRequest request) {
+    return build(HttpStatus.FORBIDDEN, "No tienes permiso para esta acción", request);
   }
 
   @ExceptionHandler(ApplicationException.class)

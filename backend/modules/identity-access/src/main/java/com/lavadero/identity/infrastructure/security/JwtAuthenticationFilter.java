@@ -56,6 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     filterChain.doFilter(request, response);
   }
 
+  @SuppressWarnings("deprecation")
   private void autenticar(String token) {
     Claims claims =
         Jwts.parser()

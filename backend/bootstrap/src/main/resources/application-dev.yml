@@ -24,6 +24,14 @@ lavadero:
       # ahí debe inyectarse vía LAVADERO_SECURITY_JWT_SECRET desde un
       # secret manager.
       secret: xGjc7D+oGnh9SJM+CKpXuQ/U/i2LC+NER9FQiGqbDCc=
+    cors:
+      # `flutter run -d chrome` asigna un puerto local variable en cada
+      # corrida (no hay un puerto fijo de `admin_web` en dev): se permite
+      # cualquier puerto en localhost/127.0.0.1 en vez de listar orígenes
+      # exactos. Solo para desarrollo local, nunca para producción.
+      allowed-origin-patterns:
+        - "http://localhost:*"
+        - "http://127.0.0.1:*"
 
 logging:
   level:

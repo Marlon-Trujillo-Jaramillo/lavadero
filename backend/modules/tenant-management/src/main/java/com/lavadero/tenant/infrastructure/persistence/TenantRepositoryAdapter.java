@@ -6,10 +6,20 @@ import com.lavadero.tenant.domain.repository.TenantRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class TenantRepositoryAdapter implements TenantRepository {
+
+  /**
+   * Tope defensivo para la búsqueda pública de tenants (endpoint sin autenticación, ver {@code
+   * TenantController}): sin esto, {@code query=""} devuelve el directorio completo de lavaderos de
+   * la plataforma en una sola llamada. El dominio no conoce "paginación" como concepto (es una
+   * pantalla de búsqueda simple, no un listado paginado real) — este límite es un detalle de
+   * infraestructura, no del caso de uso.
+   */
+  private static final int MAX_RESULTADOS_BUSQUEDA = 25;
 
   private final TenantJpaRepository jpaRepository;
 
@@ -34,7 +44,9 @@ class TenantRepositoryAdapter implements TenantRepository {
 
   @Override
   public List<Tenant> buscarActivosPorNombre(String query) {
-    return jpaRepository.buscarActivosPorNombre(query).stream()
+    return jpaRepository
+        .buscarActivosPorNombre(query, PageRequest.of(0, MAX_RESULTADOS_BUSQUEDA))
+        .stream()
         .map(TenantRepositoryAdapter::toDomain)
         .toList();
   }

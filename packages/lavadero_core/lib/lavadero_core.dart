@@ -11,6 +11,7 @@ library lavadero_core;
 
 export 'src/auth/auth.dart';
 export 'src/catalog/catalog.dart';
+export 'src/identity/identity.dart';
 export 'src/models/models.dart';
 export 'src/network/network.dart';
 export 'src/scheduling/scheduling.dart';

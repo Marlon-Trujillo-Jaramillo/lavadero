@@ -31,6 +31,10 @@ dependencies {
     // su Javadoc) necesitan estas clases en el classpath de compilación de
     // este módulo, no solo transitivamente.
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    // Ídem: `GlobalExceptionHandler` mapea `AuthorizationDeniedException`
+    // (la excepción que lanza `@PreAuthorize` al denegar) a 403 — sin esto
+    // compilaba solo transitivamente vía los módulos de negocio.
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Monitoreo de errores (ver docs/specs/004-observabilidad.md). Solo en
     // `bootstrap` (el DSN es de todo el proceso, no de cada módulo). Si

@@ -7,10 +7,10 @@ import org.springframework.security.core.Authentication;
 
 /**
  * Extiende las expresiones de {@code @PreAuthorize} con {@code hasSucursal(#sucursalId)}: verifica
- * que el usuario autenticado tenga esa sucursal asignada (claim {@code sucursal_id} del JWT).
- * Todavía no hay endpoints de negocio que la usen en esta fase (scheduling/empleados no existen
- * aún), pero queda lista y probada para cuando existan (p. ej. "un EMPLEADO solo puede operar sobre
- * su propia sucursal").
+ * que el usuario autenticado tenga esa sucursal asignada (claim {@code sucursal_id} del JWT). Usada
+ * en {@code SucursalController#actualizar} y {@code EmpleadoController#crear} para que un
+ * ADMIN_SUCURSAL solo pueda operar sobre su propia sucursal (ADMIN_TENANT no tiene esa
+ * restricción).
  */
 public class CustomMethodSecurityExpressionRoot extends SecurityExpressionRoot
     implements MethodSecurityExpressionOperations {

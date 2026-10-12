@@ -6,13 +6,20 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.Filter;
 
 /**
  * Entidad JPA de {@code RefreshToken}. Solo persiste el hash del token (ver {@code token_hash} en
  * V2__identity_access.sql y {@code TokenHasher} en `application`), nunca el valor en claro.
+ *
+ * <p>Igual que {@code UsuarioJpaEntity}: {@code tenantId} es NULLABLE (nulo solo para refresh
+ * tokens de un SUPER_ADMIN) y lleva RLS (V12__refresh_token_rls.sql) + este {@code @Filter} de
+ * Hibernate como defensa en profundidad (el {@code @FilterDef} vive una sola vez, en {@code
+ * SucursalJpaEntity}).
  */
 @Entity
 @Table(name = "refresh_token")
+@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public class RefreshTokenJpaEntity {
 
   @Id private UUID id;

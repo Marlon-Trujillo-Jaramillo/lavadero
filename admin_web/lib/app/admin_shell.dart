@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lavadero_core/lavadero_core.dart';
 
+import '../features/agenda/agenda_screen.dart';
 import '../features/auth/application/admin_auth_controller.dart';
 import '../features/branches/branches_screen.dart';
 import '../features/catalog_pricing/catalog_pricing_screen.dart';
@@ -34,6 +35,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
 
     final destinations = <_Section>[
       const _Section('Dashboard', Icons.dashboard_outlined, DashboardScreen()),
+      const _Section('Agenda', Icons.calendar_month_outlined, AgendaScreen()),
       const _Section('Empleados', Icons.people_outline, EmployeesScreen()),
       const _Section(
         'Catálogo y precios',

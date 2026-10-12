@@ -65,6 +65,39 @@ public class Usuario extends AggregateRoot<UUID> {
         null);
   }
 
+  /**
+   * Primer usuario de un tenant recién creado en el onboarding self-service (ver {@code
+   * OnboardingTenantUseCase}) — dueño de la cuenta, sin sucursal fija.
+   */
+  public static Usuario adminTenant(
+      UUID tenantId, String email, String nombre, String passwordHash) {
+    return new Usuario(
+        UUID.randomUUID(),
+        Objects.requireNonNull(tenantId),
+        email,
+        nombre,
+        passwordHash,
+        EnumSet.of(Rol.ADMIN_TENANT),
+        false,
+        UsuarioEstado.ACTIVO,
+        null);
+  }
+
+  /** Alta de un miembro del staff por un admin del tenant (ver {@code CrearEmpleadoUseCase}). */
+  public static Usuario empleado(
+      UUID tenantId, String email, String nombre, String passwordHash, UUID sucursalId) {
+    return new Usuario(
+        UUID.randomUUID(),
+        Objects.requireNonNull(tenantId),
+        email,
+        nombre,
+        passwordHash,
+        EnumSet.of(Rol.EMPLEADO),
+        false,
+        UsuarioEstado.ACTIVO,
+        sucursalId);
+  }
+
   private static String requireEmail(String email) {
     if (email == null || !email.contains("@")) {
       throw new IllegalArgumentException("email inválido");

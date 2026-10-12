@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../auth/application/auth_controller.dart';
 import 'booking/booking_screen.dart';
 import 'catalog/catalog_screen.dart';
+import 'reservations/presentation/my_reservations_screen.dart';
 import 'vehicles/vehicles_screen.dart';
 
 /// Shell de navegación para usuarios con rol CLIENTE.
@@ -20,6 +21,7 @@ class _ClienteShellState extends ConsumerState<ClienteShell> {
   static const _screens = [
     CatalogScreen(),
     BookingScreen(),
+    MyReservationsScreen(),
     VehiclesScreen(),
   ];
 
@@ -30,7 +32,7 @@ class _ClienteShellState extends ConsumerState<ClienteShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) {
-          if (i == 3) {
+          if (i == 4) {
             ref.read(authControllerProvider.notifier).logout();
             return;
           }
@@ -43,7 +45,11 @@ class _ClienteShellState extends ConsumerState<ClienteShell> {
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
-            label: 'Reservas',
+            label: 'Reservar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            label: 'Mis reservas',
           ),
           NavigationDestination(
             icon: Icon(Icons.directions_car_outlined),

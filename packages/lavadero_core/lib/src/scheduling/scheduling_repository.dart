@@ -23,6 +23,41 @@ class SchedulingRepository {
     }
   }
 
+  /// Alta de una sucursal adicional (`ADMIN_TENANT`) — antes de esto, la única forma de tener más
+  /// de una sucursal era una inserción manual en la base de datos.
+  Future<Sucursal> crearSucursal({
+    required String nombre,
+    String? direccion,
+    required int capacidadSimultanea,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/sucursales',
+        data: {'nombre': nombre, 'direccion': direccion, 'capacidadSimultanea': capacidadSimultanea},
+      );
+      return Sucursal.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  Future<Sucursal> actualizarSucursal({
+    required String id,
+    required String nombre,
+    String? direccion,
+    required int capacidadSimultanea,
+  }) async {
+    try {
+      final response = await _dio.put<Map<String, dynamic>>(
+        '/sucursales/$id',
+        data: {'nombre': nombre, 'direccion': direccion, 'capacidadSimultanea': capacidadSimultanea},
+      );
+      return Sucursal.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Cliente: reserva un servicio en una sucursal para un horario.
   Future<Reserva> crear({
     required String sucursalId,

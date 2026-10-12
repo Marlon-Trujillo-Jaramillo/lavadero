@@ -38,6 +38,24 @@ public class Sucursal extends AggregateRoot<UUID> {
     return new Sucursal(UUID.randomUUID(), tenantId, "Principal", null, 1);
   }
 
+  /**
+   * Alta de una sucursal adicional (no la "Principal" del onboarding, ver {@link
+   * #principal(UUID)}), p. ej. cuando un lavadero abre una segunda sede.
+   */
+  public static Sucursal nueva(
+      UUID tenantId, String nombre, String direccion, int capacidadSimultanea) {
+    return new Sucursal(UUID.randomUUID(), tenantId, nombre, direccion, capacidadSimultanea);
+  }
+
+  public void actualizarDetalles(String nombre, String direccion, int capacidadSimultanea) {
+    this.nombre = requireTexto(nombre);
+    this.direccion = direccion;
+    if (capacidadSimultanea < 1) {
+      throw new IllegalArgumentException("capacidadSimultanea debe ser al menos 1");
+    }
+    this.capacidadSimultanea = capacidadSimultanea;
+  }
+
   private static String requireTexto(String valor) {
     if (valor == null || valor.isBlank()) {
       throw new IllegalArgumentException("nombre no puede ser vacío");
