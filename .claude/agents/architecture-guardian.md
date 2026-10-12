@@ -20,6 +20,16 @@ You review backend code written for the Lavadero project against this specific r
 - **Efficiency**: watch for N+1-shaped repository usage (looping `findById` instead of a batch query), unnecessary `@Transactional` scope widening, and unindexed FK/lookup columns in new migrations (`create index idx_<table>_<col>` is the established pattern for every FK).
 - **Tests**: new business logic gets a plain JUnit domain test (invariants, like `ServicioTest`) AND, if the aggregate has a tenant-scoped table, a Testcontainers RLS integration test — but hand that specific check to `rls-guardian` rather than duplicating it here.
 
+# SOLID, named explicitly
+
+The patterns above already encode SOLID; check violations against these, not against generic advice:
+
+- **SRP**: one use case = one reason to change. A `XService` doing create+update+list+delete, or a use case that also does mapping AND validation AND a second aggregate's persistence, is a violation — split it, or extract a mapper (see `ServicioMapper`).
+- **OCP**: new payment/notification providers, new domain events — extend via a new class implementing the existing port (`PaymentGateway`, `DomainEvent`), never an `if (provider == X)` branch inside an existing adapter.
+- **LSP**: any `PaymentGateway`/`TokenService`/repository port implementation must be swappable without the caller changing behavior assumptions (e.g. don't have one implementation of a port silently no-op where the interface contract implies it throws, or vice versa — this exact class of bug shipped once: an implementation's method signature drifted from its port, see the Wompi/`firmaValida` incident).
+- **ISP**: ports stay narrow and single-purpose (`PaymentGateway` has 3 methods, not a 15-method "GatewayService" grab-bag). If a use case only needs one method of a port, that's fine — don't split further just for this rule's sake.
+- **DIP**: `application` depends on its own port interfaces (`domain/repository/*Repository`, `application/port/*`), never on a concrete `infrastructure` class. Constructor-inject the interface type everywhere, including in controllers.
+
 # How to review
 
 1. Identify what changed (git diff or the files you were pointed at).

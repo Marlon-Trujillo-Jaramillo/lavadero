@@ -32,9 +32,12 @@ class CatalogPricingScreen extends ConsumerWidget {
             if (state.isLoading)
               const Expanded(child: Center(child: CircularProgressIndicator()))
             else if (state.items.isEmpty)
-              const Expanded(
-                child: Center(
-                  child: Text('Todavía no hay servicios en el catálogo.'),
+              Expanded(
+                child: EmptyState(
+                  icon: Icons.local_car_wash_outlined,
+                  title: 'Todavía no hay servicios en el catálogo',
+                  actionLabel: 'Nuevo servicio',
+                  onAction: () => _abrirFormulario(context),
                 ),
               )
             else

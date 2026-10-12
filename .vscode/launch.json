@@ -9,28 +9,32 @@
             "name": "admin_web",
             "cwd": "admin_web",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "args": ["--dart-define=API_BASE_URL=http://localhost:8080"]
         },
         {
             "name": "admin_web (profile mode)",
             "cwd": "admin_web",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "args": ["--dart-define=API_BASE_URL=http://localhost:8080"]
         },
         {
             "name": "admin_web (release mode)",
             "cwd": "admin_web",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "args": ["--dart-define=API_BASE_URL=http://localhost:8080"]
         },
         {
             "name": "mobile_app",
             "cwd": "mobile_app",
             "request": "launch",
             "type": "dart",
-            "program": "lib/main_dev.dart"
+            "program": "lib/main_dev.dart",
+            "args": ["--dart-define=API_BASE_URL=http://localhost:8080"]
         },
         {
             "name": "mobile_app (profile mode)",
@@ -38,7 +42,8 @@
             "request": "launch",
             "type": "dart",
             "program": "lib/main_dev.dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "args": ["--dart-define=API_BASE_URL=http://localhost:8080"]
         },
         {
             "name": "mobile_app (release mode)",

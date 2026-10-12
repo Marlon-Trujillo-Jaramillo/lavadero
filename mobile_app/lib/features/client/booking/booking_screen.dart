@@ -153,7 +153,7 @@ class _ConfirmacionReserva extends StatelessWidget {
         children: [
           Icon(Icons.check_circle_outline, size: 64, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: LavaderoSpacing.md),
-          const Text('¡Reserva confirmada!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('¡Reserva confirmada!', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: LavaderoSpacing.sm),
           Text(_formatearFechaHora(reserva.fechaHoraInicio.toLocal())),
           const SizedBox(height: LavaderoSpacing.lg),

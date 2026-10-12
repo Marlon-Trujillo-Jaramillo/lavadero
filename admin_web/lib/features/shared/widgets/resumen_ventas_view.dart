@@ -33,9 +33,9 @@ class ResumenVentasView extends StatelessWidget {
         Text('Servicios más pedidos', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: LavaderoSpacing.sm),
         if (resumen.serviciosMasPedidos.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(top: LavaderoSpacing.sm),
-            child: Text('Todavía no hay reservas completadas en este rango.'),
+          const EmptyState(
+            icon: Icons.local_car_wash_outlined,
+            title: 'Todavía no hay reservas completadas en este rango',
           )
         else
           Card(

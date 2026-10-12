@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 
+import '../models/checklist_item.dart';
+import '../models/incidencia.dart';
+import '../models/incidencia_categoria.dart';
 import '../models/reserva.dart';
 import '../models/resumen_ventas.dart';
 import '../models/sucursal.dart';
@@ -137,6 +140,72 @@ class SchedulingRepository {
       final response =
           await _dio.patch<Map<String, dynamic>>('/agenda/reservas/$reservaId/$accion');
       return Reserva.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Checklist de servicio de una reserva (los 5 ítems fijos, con su estado actual).
+  Future<List<ChecklistItem>> obtenerChecklist(String reservaId) async {
+    try {
+      final response = await _dio.get<List<dynamic>>('/agenda/reservas/$reservaId/checklist');
+      return (response.data ?? [])
+          .map((json) => ChecklistItem.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Marca/desmarca un ítem del checklist; devuelve la lista completa actualizada.
+  Future<List<ChecklistItem>> marcarChecklistItem({
+    required String reservaId,
+    required String tipo,
+    required bool completado,
+  }) async {
+    try {
+      final response = await _dio.patch<List<dynamic>>(
+        '/agenda/reservas/$reservaId/checklist/$tipo',
+        data: {'completado': completado},
+      );
+      return (response.data ?? [])
+          .map((json) => ChecklistItem.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Reporta un problema durante/después de un servicio (opcionalmente atado a una reserva).
+  Future<Incidencia> crearIncidencia({
+    required String sucursalId,
+    String? reservaId,
+    required IncidenciaCategoria categoria,
+    required String descripcion,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/incidencias',
+        data: {
+          'sucursalId': sucursalId,
+          'reservaId': reservaId,
+          'categoria': categoria.wireValue,
+          'descripcion': descripcion,
+        },
+      );
+      return Incidencia.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Incidencias reportadas por el usuario actual.
+  Future<List<Incidencia>> misIncidencias() async {
+    try {
+      final response = await _dio.get<List<dynamic>>('/incidencias/mias');
+      return (response.data ?? [])
+          .map((json) => Incidencia.fromJson(json as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }
