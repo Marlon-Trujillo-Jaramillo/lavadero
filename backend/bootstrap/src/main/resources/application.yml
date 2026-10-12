@@ -47,3 +47,11 @@ lavadero:
       # hardcodear un secreto de producción aquí ni versionarlo: en
       # producción debe venir de una variable de entorno
       # (LAVADERO_SECURITY_JWT_SECRET) respaldada por un secret manager.
+    cors:
+      # Vacío por defecto = ningún origen cross-origin permitido. En
+      # producción, listar el/los orígenes exactos de `admin_web` desplegado
+      # vía LAVADERO_CORS_ALLOWED_ORIGINS (coma-separado), p. ej.
+      # "https://admin.lavadero.com". Ver application-dev.yml para el
+      # equivalente de desarrollo local.
+      allowed-origins: ${LAVADERO_CORS_ALLOWED_ORIGINS:}
+      allowed-origin-patterns: ${LAVADERO_CORS_ALLOWED_ORIGIN_PATTERNS:}

@@ -28,6 +28,10 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson")
 
     implementation("com.bucket4j:bucket4j-core")
+    // Cache con eviction por inactividad para los buckets de RateLimitFilter:
+    // un ConcurrentHashMap simple nunca libera entradas (una por IP+ruta,
+    // para siempre). Versión gestionada por el BOM de Spring Boot (platform).
+    implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Argon2PasswordEncoder (PasswordEncoderConfig) lo necesita en runtime:
     // spring-security-crypto lo declara opcional, no lo trae por defecto.
@@ -36,4 +40,6 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
 }

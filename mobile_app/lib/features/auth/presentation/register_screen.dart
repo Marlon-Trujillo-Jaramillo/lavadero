@@ -56,63 +56,66 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
-      body: Padding(
-        padding: const EdgeInsets.all(LavaderoSpacing.md),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre completo',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Ingresa tu nombre'
-                    : null,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(LavaderoSpacing.lg),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.local_car_wash_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.lg),
+                  TextFormField(
+                    controller: _nombreController,
+                    decoration: const InputDecoration(labelText: 'Nombre completo'),
+                    validator: (value) => (value == null || value.trim().isEmpty)
+                        ? 'Ingresa tu nombre'
+                        : null,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.sm),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: (value) =>
+                        (value == null || !value.contains('@'))
+                            ? 'Ingresa un email válido'
+                            : null,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.sm),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Contraseña'),
+                    validator: (value) => (value == null || value.length < 6)
+                        ? 'Mínimo 6 caracteres'
+                        : null,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.md),
+                  if (_errorMessage != null) ...[
+                    ErrorBanner(
+                      message: _errorMessage!,
+                      onDismiss: () => setState(() => _errorMessage = null),
+                    ),
+                    const SizedBox(height: LavaderoSpacing.sm),
+                  ],
+                  LoadingButton(
+                    isLoading: _isLoading,
+                    onPressed: tenantSlug == null
+                        ? null
+                        : () => _submit(tenantSlug),
+                    child: const Text('Crear cuenta'),
+                  ),
+                ],
               ),
-              const SizedBox(height: LavaderoSpacing.sm),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || !value.contains('@'))
-                    ? 'Ingresa un email válido'
-                    : null,
-              ),
-              const SizedBox(height: LavaderoSpacing.sm),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.length < 6)
-                    ? 'Mínimo 6 caracteres'
-                    : null,
-              ),
-              const SizedBox(height: LavaderoSpacing.md),
-              if (_errorMessage != null) ...[
-                ErrorBanner(
-                  message: _errorMessage!,
-                  onDismiss: () => setState(() => _errorMessage = null),
-                ),
-                const SizedBox(height: LavaderoSpacing.sm),
-              ],
-              LoadingButton(
-                isLoading: _isLoading,
-                onPressed: tenantSlug == null
-                    ? null
-                    : () => _submit(tenantSlug),
-                child: const Text('Crear cuenta'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

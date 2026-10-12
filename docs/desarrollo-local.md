@@ -59,12 +59,21 @@ se sembraron a mano el 2026-07-20 en la base de dev:
 
 - Tenant: **`lavadero-demo`** ("Lavadero Demo"), con una sucursal
   "Principal" (capacidad 2).
-- Usuarios (contraseña `Test1234!` para ambos):
+- Usuarios (contraseña `Test1234!` para todos):
 
-  | Email | Rol(es) |
-  |---|---|
-  | `admin@demo.com` | `ADMIN_TENANT` + `CLIENTE` |
-  | `empleado@demo.com` | `EMPLEADO` (con sucursal asignada) |
+  | Email | Rol(es) | Tenant |
+  |---|---|---|
+  | `admin@demo.com` | `ADMIN_TENANT` + `CLIENTE` | `lavadero-demo` |
+  | `empleado@demo.com` | `EMPLEADO` (con sucursal asignada) | `lavadero-demo` |
+  | `superadmin@lavadero.app` | `SUPER_ADMIN` | Ninguno (login **sin** header `X-Tenant-Slug`) |
+
+  `SUPER_ADMIN` es una cuenta de plataforma: el dominio (`Usuario.java`)
+  prohíbe que tenga `tenantId` — no se puede simplemente agregarle el rol a
+  un usuario que ya pertenece a un tenant (falla con
+  `IllegalArgumentException: Un SUPER_ADMIN no puede tener tenantId`). Para
+  crear otra, registrar un usuario normal y luego, por SQL: `update usuario
+  set tenant_id = null ...`, quitar el rol `CLIENTE` y agregar
+  `SUPER_ADMIN`.
 
 Si hay que volver a sembrar (p. ej. tras borrar el volumen de Postgres),
 la secuencia es:
@@ -136,11 +145,47 @@ Ya verificado de punta a punta: registro, login, refresh, CRUD autenticado
 de catálogo, creación de reservas — todo funciona contra Postgres real con
 RLS real.
 
+## 7b. Bugs encontrados y corregidos probando gestión de planes / SUPER_ADMIN (2026-08-08)
+
+Dos bugs más, otra vez invisibles a toda la suite de tests hasta que se
+ejercitó por primera vez un login real de `SUPER_ADMIN` (nunca antes
+probado — no existía ninguna cuenta así):
+
+6. **`set_config('app.current_tenant_id', <uuid>, true)` (alcance LOCAL a
+   la transacción, ver `TenantAwareTransactionAspect`) revierte a `''`
+   (string vacío), no a `NULL`, cuando termina la transacción que lo fijó**
+   — comportamiento real de Postgres para parámetros de sesión "custom" la
+   primera vez que se tocan en una conexión. Como HikariCP reutiliza
+   conexiones, cualquier conexión que sirvió una request de un tenant
+   normal quedaba con `app.current_tenant_id = ''`; la siguiente request de
+   plataforma (SUPER_ADMIN, sin tenant) que reusara esa conexión rompía con
+   `invalid input syntax for type uuid: ""` en las 4 políticas RLS
+   (`sucursal`, `usuario`, `servicio`, `reserva`). Fix: `nullif(..., '')`
+   antes del cast a `uuid` en las 4 políticas — migraciones V8 (tenant-
+   management), V9 (identity-access), V10 (catalog), V11 (scheduling); una
+   por módulo porque los tests de integración de cada módulo corren Flyway
+   solo contra sus propias migraciones.
+7. **`@PreAuthorize` deniega lanzando `AuthorizationDeniedException`, no
+   `ForbiddenException`** — `GlobalExceptionHandler` no tenía handler para
+   esa excepción, así que caía en el catch-all genérico y devolvía 500 en
+   vez de 403 para CUALQUIER usuario autenticado sin el rol requerido, en
+   CUALQUIER endpoint `@PreAuthorize` de toda la API. Nunca se había hecho
+   una llamada real con un rol insuficiente contra un endpoint protegido.
+   Fix: nuevo `@ExceptionHandler(AuthorizationDeniedException.class)` →
+   403.
+
 ## 8. Estado / pendientes
 
 - No hay flujo de auto-registro de tenants (ver sección 4) — hueco real de
-  producto, no solo de testing local.
+  producto, no solo de testing local. (Mitigado parcialmente: ahora sí hay
+  una forma documentada de crear un `SUPER_ADMIN`, ver sección 4.)
 - Vista de agenda en `admin_web` todavía pendiente (Fase 2 solo cubrió
   `mobile_app`).
 - `SENTRY_DSN` vacío — falta crear las cuentas en sentry.io (ver
   `docs/specs/004-observabilidad.md`).
+- `admin_web` no se pudo verificar visualmente en este entorno (sandbox sin
+  acceso a captura de pantalla de Chrome/macOS) — sí se verificó
+  `flutter analyze`/`flutter test` (verdes) y, por compartir el mismo
+  `LavaderoTheme`/`SubscriptionPlanController` ya probado, y el backend vía
+  `curl` end-to-end (login SUPER_ADMIN, CRUD de planes, 403 por rol
+  insuficiente). Falta una pasada visual manual en el navegador.

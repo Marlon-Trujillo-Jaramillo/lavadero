@@ -68,59 +68,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Padding(
-        padding: const EdgeInsets.all(LavaderoSpacing.md),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Lavadero: $tenantSlug',
-                style: Theme.of(context).textTheme.bodyMedium,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(LavaderoSpacing.lg),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.local_car_wash_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.sm),
+                  Text(
+                    tenantSlug,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.lg),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: (value) =>
+                        (value == null || !value.contains('@'))
+                            ? 'Ingresa un email válido'
+                            : null,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.sm),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Contraseña'),
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'Ingresa tu contraseña'
+                        : null,
+                  ),
+                  const SizedBox(height: LavaderoSpacing.md),
+                  if (_errorMessage != null) ...[
+                    ErrorBanner(
+                      message: _errorMessage!,
+                      onDismiss: () => setState(() => _errorMessage = null),
+                    ),
+                    const SizedBox(height: LavaderoSpacing.sm),
+                  ],
+                  LoadingButton(
+                    isLoading: _isLoading,
+                    onPressed: () => _submit(tenantSlug),
+                    child: const Text('Ingresar'),
+                  ),
+                  TextButton(
+                    onPressed: () => context.push('/register'),
+                    child: const Text('¿No tienes cuenta? Regístrate'),
+                  ),
+                ],
               ),
-              const SizedBox(height: LavaderoSpacing.md),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || !value.contains('@'))
-                    ? 'Ingresa un email válido'
-                    : null,
-              ),
-              const SizedBox(height: LavaderoSpacing.sm),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => (value == null || value.isEmpty)
-                    ? 'Ingresa tu contraseña'
-                    : null,
-              ),
-              const SizedBox(height: LavaderoSpacing.md),
-              if (_errorMessage != null) ...[
-                ErrorBanner(
-                  message: _errorMessage!,
-                  onDismiss: () => setState(() => _errorMessage = null),
-                ),
-                const SizedBox(height: LavaderoSpacing.sm),
-              ],
-              LoadingButton(
-                isLoading: _isLoading,
-                onPressed: () => _submit(tenantSlug),
-                child: const Text('Ingresar'),
-              ),
-              TextButton(
-                onPressed: () => context.push('/register'),
-                child: const Text('¿No tienes cuenta? Regístrate'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

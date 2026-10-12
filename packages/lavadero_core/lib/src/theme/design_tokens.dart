@@ -28,4 +28,28 @@ abstract final class LavaderoRadii {
   static const double sm = 8;
   static const double md = 12;
   static const double lg = 16;
+
+  /// Redondeo total — pills/badges/chips.
+  static const double full = 999;
+}
+
+/// Jerarquía tipográfica compartida. Se aplica sobre el `TextTheme` que
+/// genera Material 3 a partir del `ColorScheme` (mantiene los colores
+/// correctos por brightness), solo ajustando peso/tracking para que la UI
+/// no se sienta "plana" con los pesos por defecto.
+abstract final class LavaderoTypography {
+  static TextTheme apply(TextTheme base) {
+    return base.copyWith(
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+      titleLarge: base.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      titleMedium: base.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      titleSmall: base.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      bodyLarge: base.bodyLarge?.copyWith(height: 1.35),
+      bodyMedium: base.bodyMedium?.copyWith(height: 1.35),
+      labelLarge: base.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+    );
+  }
 }

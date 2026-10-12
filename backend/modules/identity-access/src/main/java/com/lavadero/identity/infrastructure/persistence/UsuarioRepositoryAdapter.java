@@ -1,8 +1,10 @@
 package com.lavadero.identity.infrastructure.persistence;
 
+import com.lavadero.identity.domain.model.Rol;
 import com.lavadero.identity.domain.model.Usuario;
 import com.lavadero.identity.domain.model.UsuarioEstado;
 import com.lavadero.identity.domain.repository.UsuarioRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -35,6 +37,14 @@ class UsuarioRepositoryAdapter implements UsuarioRepository {
   @Transactional(readOnly = true)
   public boolean existsByEmailAndTenantId(String email, UUID tenantId) {
     return jpaRepository.existsByEmailAndTenantId(email, tenantId);
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Usuario> findEmpleadosDelTenantActual() {
+    return jpaRepository.findByRol(Rol.EMPLEADO).stream()
+        .map(UsuarioRepositoryAdapter::toDomain)
+        .toList();
   }
 
   @Override

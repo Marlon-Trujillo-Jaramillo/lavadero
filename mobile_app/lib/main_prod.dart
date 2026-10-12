@@ -1,7 +1,7 @@
 import 'app/di/environment.dart';
 import 'bootstrap.dart';
 
-Future<void> main() async {
+Future<void> main() async { 
   await bootstrap(
     const AppEnvironment(
       name: 'prod',

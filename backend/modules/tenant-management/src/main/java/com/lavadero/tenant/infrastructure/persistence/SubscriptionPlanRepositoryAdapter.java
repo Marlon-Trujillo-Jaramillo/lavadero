@@ -4,6 +4,7 @@ import com.lavadero.shared.domain.Money;
 import com.lavadero.tenant.domain.model.SubscriptionPlan;
 import com.lavadero.tenant.domain.repository.SubscriptionPlanRepository;
 import java.util.Currency;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -28,6 +29,13 @@ class SubscriptionPlanRepositoryAdapter implements SubscriptionPlanRepository {
     return jpaRepository.findAll().stream()
         .findFirst()
         .map(SubscriptionPlanRepositoryAdapter::toDomain);
+  }
+
+  @Override
+  public List<SubscriptionPlan> findAll() {
+    return jpaRepository.findAll().stream()
+        .map(SubscriptionPlanRepositoryAdapter::toDomain)
+        .toList();
   }
 
   @Override

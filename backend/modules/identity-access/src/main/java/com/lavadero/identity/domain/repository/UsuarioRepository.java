@@ -1,6 +1,7 @@
 package com.lavadero.identity.domain.repository;
 
 import com.lavadero.identity.domain.model.Usuario;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +16,9 @@ public interface UsuarioRepository {
   Optional<Usuario> findById(UUID id);
 
   boolean existsByEmailAndTenantId(String email, UUID tenantId);
+
+  /** Empleados (rol EMPLEADO) del tenant actual — acotado por RLS, sin filtro manual. */
+  List<Usuario> findEmpleadosDelTenantActual();
 
   Usuario save(Usuario usuario);
 }

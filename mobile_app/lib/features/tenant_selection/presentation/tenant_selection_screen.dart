@@ -43,7 +43,6 @@ class _TenantSelectionScreenState
               decoration: const InputDecoration(
                 labelText: 'Buscar lavadero por nombre',
                 prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
               ),
               onChanged: controller.search,
             ),

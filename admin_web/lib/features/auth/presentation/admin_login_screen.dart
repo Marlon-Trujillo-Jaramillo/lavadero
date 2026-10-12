@@ -87,21 +87,15 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                       controller: _tenantSlugController,
                       decoration: const InputDecoration(
                         labelText: 'Slug del lavadero (tenant)',
-                        border: OutlineInputBorder(),
+                        helperText: 'Dejar vacío para ingresar como '
+                            'SUPER_ADMIN de plataforma',
                       ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty)
-                              ? 'Ingresa el slug de tu lavadero'
-                              : null,
                     ),
                     const SizedBox(height: LavaderoSpacing.sm),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Email'),
                       validator: (value) =>
                           (value == null || !value.contains('@'))
                               ? 'Ingresa un email válido'
@@ -111,10 +105,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Contraseña'),
                       validator: (value) =>
                           (value == null || value.isEmpty)
                               ? 'Ingresa tu contraseña'

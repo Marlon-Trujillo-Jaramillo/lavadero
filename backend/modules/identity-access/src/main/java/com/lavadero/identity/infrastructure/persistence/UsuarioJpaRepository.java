@@ -1,8 +1,12 @@
 package com.lavadero.identity.infrastructure.persistence;
 
+import com.lavadero.identity.domain.model.Rol;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Repositorio Spring Data. Deliberadamente NO añade cláusulas manuales de aislamiento por tenant:
@@ -20,4 +24,7 @@ interface UsuarioJpaRepository extends JpaRepository<UsuarioJpaEntity, UUID> {
   Optional<UsuarioJpaEntity> findByEmailAndTenantId(String email, UUID tenantId);
 
   boolean existsByEmailAndTenantId(String email, UUID tenantId);
+
+  @Query("select u from UsuarioJpaEntity u where :rol member of u.roles order by u.nombre")
+  List<UsuarioJpaEntity> findByRol(@Param("rol") Rol rol);
 }

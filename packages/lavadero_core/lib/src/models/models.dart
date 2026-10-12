@@ -1,9 +1,11 @@
 export 'auth_response.dart';
 export 'auth_tokens.dart';
+export 'empleado.dart';
 export 'reserva.dart';
 export 'reserva_estado.dart';
 export 'resumen_ventas.dart';
 export 'service_item.dart';
+export 'subscription_plan.dart';
 export 'sucursal.dart';
 export 'tenant_summary.dart';
 export 'user_profile.dart';
