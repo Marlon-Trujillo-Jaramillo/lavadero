@@ -1,5 +1,7 @@
 package com.lavadero.scheduling.infrastructure.persistence;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -83,6 +85,26 @@ final class RlsTestFixtures {
                 id,
                 tenantId,
                 nombre));
+    return id;
+  }
+
+  /** `reserva` SÍ tiene RLS+FORCE — usada como fixture por los tests de checklist/incidencia. */
+  UUID crearReserva(UUID tenantId, UUID sucursalId, UUID servicioId, UUID clienteId) {
+    UUID id = UUID.randomUUID();
+    comoTenant(
+        tenantId,
+        () ->
+            jdbcTemplate.update(
+                "insert into reserva (id, tenant_id, sucursal_id, servicio_id, cliente_id, "
+                    + "fecha_hora_inicio, fecha_hora_fin, duracion_estimada_minutos, precio, moneda, estado) "
+                    + "values (?, ?, ?, ?, ?, ?, ?, 20, 15000, 'COP', 'PENDIENTE')",
+                id,
+                tenantId,
+                sucursalId,
+                servicioId,
+                clienteId,
+                Timestamp.from(Instant.parse("2026-08-01T10:00:00Z")),
+                Timestamp.from(Instant.parse("2026-08-01T10:20:00Z"))));
     return id;
   }
 

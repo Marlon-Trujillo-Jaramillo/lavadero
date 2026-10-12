@@ -1,6 +1,9 @@
 export 'auth_response.dart';
 export 'auth_tokens.dart';
+export 'checklist_item.dart';
 export 'empleado.dart';
+export 'incidencia.dart';
+export 'incidencia_categoria.dart';
 export 'reserva.dart';
 export 'reserva_estado.dart';
 export 'resumen_ventas.dart';

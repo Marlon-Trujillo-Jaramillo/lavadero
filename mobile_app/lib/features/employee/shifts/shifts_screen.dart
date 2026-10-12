@@ -38,10 +38,7 @@ class ShiftsScreen extends ConsumerWidget {
     if (state.reservas.isEmpty) {
       return ListView(
         children: const [
-          Padding(
-            padding: EdgeInsets.only(top: LavaderoSpacing.xl),
-            child: Center(child: Text('No hay reservas para hoy.')),
-          ),
+          EmptyState(icon: Icons.calendar_month_outlined, title: 'No hay reservas para hoy'),
         ],
       );
     }
