@@ -32,8 +32,8 @@ class SubscriptionPlanState {
 
 final subscriptionPlanControllerProvider =
     NotifierProvider<SubscriptionPlanController, SubscriptionPlanState>(
-  SubscriptionPlanController.new,
-);
+      SubscriptionPlanController.new,
+    );
 
 class SubscriptionPlanController extends Notifier<SubscriptionPlanState> {
   @override
@@ -61,7 +61,9 @@ class SubscriptionPlanController extends Notifier<SubscriptionPlanState> {
     required int maxEmpleados,
     required List<String> features,
   }) async {
-    await ref.read(tenantRepositoryProvider).crearPlan(
+    await ref
+        .read(tenantRepositoryProvider)
+        .crearPlan(
           nombre: nombre,
           precio: precio,
           maxSucursales: maxSucursales,
@@ -79,7 +81,9 @@ class SubscriptionPlanController extends Notifier<SubscriptionPlanState> {
     required int maxEmpleados,
     required List<String> features,
   }) async {
-    await ref.read(tenantRepositoryProvider).actualizarPlan(
+    await ref
+        .read(tenantRepositoryProvider)
+        .actualizarPlan(
           id: id,
           nombre: nombre,
           precio: precio,

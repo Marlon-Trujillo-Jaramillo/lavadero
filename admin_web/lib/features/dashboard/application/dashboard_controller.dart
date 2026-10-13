@@ -6,13 +6,22 @@ import '../../../app/di/providers.dart';
 /// Resumen de ventas de **hoy** — KPIs rápidos al abrir la app (sin selector de rango, ver
 /// `reports` para eso).
 class DashboardState {
-  const DashboardState({this.resumen, this.isLoading = false, this.errorMessage});
+  const DashboardState({
+    this.resumen,
+    this.isLoading = false,
+    this.errorMessage,
+  });
 
   final ResumenVentas? resumen;
   final bool isLoading;
   final String? errorMessage;
 
-  DashboardState copyWith({ResumenVentas? resumen, bool? isLoading, String? errorMessage, bool clearError = false}) {
+  DashboardState copyWith({
+    ResumenVentas? resumen,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
     return DashboardState(
       resumen: resumen ?? this.resumen,
       isLoading: isLoading ?? this.isLoading,
@@ -21,9 +30,10 @@ class DashboardState {
   }
 }
 
-final dashboardControllerProvider = NotifierProvider<DashboardController, DashboardState>(
-  DashboardController.new,
-);
+final dashboardControllerProvider =
+    NotifierProvider<DashboardController, DashboardState>(
+      DashboardController.new,
+    );
 
 class DashboardController extends Notifier<DashboardState> {
   @override
