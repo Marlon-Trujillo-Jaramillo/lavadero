@@ -7,6 +7,7 @@ import com.lavadero.identity.domain.repository.UsuarioRepository;
 import com.lavadero.shared.application.UseCase;
 import com.lavadero.shared.application.exception.ValidationException;
 import com.lavadero.shared.security.TenantContext;
+import com.lavadero.tenant.application.usecase.ObtenerSucursalPorIdUseCase;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +23,15 @@ public class CrearEmpleadoUseCase implements UseCase<CrearEmpleadoCommand, Emple
 
   private final UsuarioRepository usuarioRepository;
   private final PasswordEncoder passwordEncoder;
+  private final ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase;
 
   public CrearEmpleadoUseCase(
-      UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+      UsuarioRepository usuarioRepository,
+      PasswordEncoder passwordEncoder,
+      ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase) {
     this.usuarioRepository = usuarioRepository;
     this.passwordEncoder = passwordEncoder;
+    this.obtenerSucursalPorIdUseCase = obtenerSucursalPorIdUseCase;
   }
 
   @Override
@@ -37,6 +42,12 @@ public class CrearEmpleadoUseCase implements UseCase<CrearEmpleadoCommand, Emple
 
     if (usuarioRepository.existsByEmailAndTenantId(email, tenantId)) {
       throw new ValidationException("Ya existe un usuario con ese email en este tenant");
+    }
+
+    // La FK a sucursal no pasa por RLS: sin esta lectura (que sí la aplica, 404 si es de otro
+    // tenant) el empleado podría quedar asignado a una sucursal ajena.
+    if (input.sucursalId() != null) {
+      obtenerSucursalPorIdUseCase.execute(input.sucursalId());
     }
 
     String passwordHash = passwordEncoder.encode(input.password());

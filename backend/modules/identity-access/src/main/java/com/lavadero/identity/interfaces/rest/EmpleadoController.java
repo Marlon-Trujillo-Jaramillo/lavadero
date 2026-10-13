@@ -6,11 +6,14 @@ import com.lavadero.identity.application.usecase.CrearEmpleadoUseCase;
 import com.lavadero.identity.application.usecase.ListarEmpleadosUseCase;
 import com.lavadero.identity.interfaces.rest.dto.CrearEmpleadoRequest;
 import com.lavadero.identity.interfaces.rest.dto.EmpleadoResponse;
+import com.lavadero.shared.security.AlcanceSucursal;
+import com.lavadero.shared.security.PrincipalAutenticado;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,8 +37,10 @@ public class EmpleadoController {
 
   @GetMapping("/api/v1/empleados")
   @PreAuthorize("hasAnyRole('ADMIN_TENANT','ADMIN_SUCURSAL')")
-  public List<EmpleadoResponse> listar() {
-    return listarEmpleadosUseCase.execute(null).stream().map(EmpleadoResponse::from).toList();
+  public List<EmpleadoResponse> listar(@AuthenticationPrincipal PrincipalAutenticado principal) {
+    return listarEmpleadosUseCase.execute(AlcanceSucursal.de(principal)).stream()
+        .map(EmpleadoResponse::from)
+        .toList();
   }
 
   @PostMapping("/api/v1/empleados")

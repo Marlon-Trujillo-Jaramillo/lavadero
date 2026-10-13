@@ -5,12 +5,14 @@ import java.util.List;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -22,8 +24,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
  * <p>Orden de filtros relevante:
  *
  * <ol>
- *   <li>{@link RateLimitFilter}: corta temprano (429) los intentos de fuerza bruta en
- *       login/refresh, antes de gastar ciclos de autenticación.
+ *   <li>{@link RateLimitFilter}: corta temprano (429) los intentos de fuerza bruta en login/refresh
+ *       (y las ráfagas contra el webhook público), antes de gastar ciclos de autenticación.
+ *   <li>{@link LimiteCuerpoFilter}: 413 si el cuerpo de un endpoint público con payload arbitrario
+ *       (webhook de Wompi) excede su tope.
  *   <li>{@link JwtAuthenticationFilter}: valida el JWT (si viene) y puebla el SecurityContext.
  *   <li>{@link TenantResolutionFilter}: lee el claim {@code tenant_id} YA VALIDADO y puebla {@code
  *       TenantContext} para el resto de la request; limpia el contexto en un {@code finally}.
@@ -43,6 +47,9 @@ public class SecurityConfig {
     "/api/v1/auth/refresh",
     "/api/v1/auth/register",
     "/api/v1/onboarding/tenants",
+    // Webhook de Wompi: sin JWT; su autenticidad la prueba el checksum del payload (ver
+    // ProcesarEventoWompiUseCase, tenant-management).
+    "/api/v1/pagos/webhook/wompi",
     "/actuator/health",
     "/actuator/health/**"
   };
@@ -60,6 +67,11 @@ public class SecurityConfig {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        // Sin esto, Spring responde 403 a un access token ausente/expirado, y el
+        // RefreshInterceptor de los clientes (lavadero_core) solo refresca ante un 401:
+        // la sesión moría al expirar el primer access token.
+        .exceptionHandling(
+            e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
         .authorizeHttpRequests(
             authorize ->
                 authorize
@@ -73,6 +85,7 @@ public class SecurityConfig {
                     .anyRequest()
                     .authenticated())
         .addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(new LimiteCuerpoFilter(), RateLimitFilter.class)
         .addFilterBefore(
             new JwtAuthenticationFilter(jwtTokenService),
             UsernamePasswordAuthenticationFilter.class)

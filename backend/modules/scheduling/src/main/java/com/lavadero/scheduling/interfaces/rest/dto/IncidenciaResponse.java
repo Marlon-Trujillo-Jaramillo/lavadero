@@ -14,6 +14,11 @@ public record IncidenciaResponse(
 
   public static IncidenciaResponse from(IncidenciaDto dto) {
     return new IncidenciaResponse(
-        dto.id(), dto.sucursalId(), dto.reservaId(), dto.categoria(), dto.descripcion(), dto.creadoEn());
+        dto.id(),
+        dto.sucursalId(),
+        dto.reservaId(),
+        dto.categoria(),
+        dto.descripcion(),
+        dto.creadoEn());
   }
 }

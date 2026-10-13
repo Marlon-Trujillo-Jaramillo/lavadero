@@ -6,7 +6,6 @@ import com.lavadero.scheduling.domain.model.ChecklistItem;
 import com.lavadero.scheduling.domain.repository.ChecklistItemRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.shared.application.UseCase;
-import com.lavadero.shared.application.exception.NotFoundException;
 import com.lavadero.shared.security.TenantContext;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -28,16 +27,15 @@ public class MarcarChecklistItemUseCase
   @Override
   @Transactional
   public List<ChecklistItemDto> execute(MarcarChecklistItemCommand input) {
-    reservaRepository
-        .findById(input.reservaId())
-        .orElseThrow(() -> NotFoundException.de("Reserva", input.reservaId()));
+    ReservaDelAlcance.cargar(reservaRepository, input.reservaId(), input.alcance());
 
     ChecklistItem item =
         checklistItemRepository
             .findByReservaIdAndTipo(input.reservaId(), input.tipo())
             .orElseGet(
                 () ->
-                    ChecklistItem.nuevo(TenantContext.requerido(), input.reservaId(), input.tipo()));
+                    ChecklistItem.nuevo(
+                        TenantContext.requerido(), input.reservaId(), input.tipo()));
     item.marcar(input.completado());
     checklistItemRepository.save(item);
 

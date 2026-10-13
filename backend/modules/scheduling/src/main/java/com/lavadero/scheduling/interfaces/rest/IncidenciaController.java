@@ -1,11 +1,12 @@
 package com.lavadero.scheduling.interfaces.rest;
 
-import com.lavadero.identity.infrastructure.security.JwtAuthenticatedPrincipal;
 import com.lavadero.scheduling.application.command.CrearIncidenciaCommand;
 import com.lavadero.scheduling.application.usecase.CrearIncidenciaUseCase;
 import com.lavadero.scheduling.application.usecase.ListarMisIncidenciasUseCase;
 import com.lavadero.scheduling.interfaces.rest.dto.CrearIncidenciaRequest;
 import com.lavadero.scheduling.interfaces.rest.dto.IncidenciaResponse;
+import com.lavadero.shared.security.AlcanceSucursal;
+import com.lavadero.shared.security.PrincipalAutenticado;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -38,7 +39,7 @@ public class IncidenciaController {
   @PostMapping("/api/v1/incidencias")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
   public ResponseEntity<IncidenciaResponse> crear(
-      @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
+      @AuthenticationPrincipal PrincipalAutenticado principal,
       @Valid @RequestBody CrearIncidenciaRequest request) {
     var creada =
         crearIncidenciaUseCase.execute(
@@ -47,7 +48,8 @@ public class IncidenciaController {
                 request.sucursalId(),
                 request.reservaId(),
                 request.categoria(),
-                request.descripcion()));
+                request.descripcion(),
+                AlcanceSucursal.de(principal)));
     return ResponseEntity.created(URI.create("/api/v1/incidencias/" + creada.id()))
         .body(IncidenciaResponse.from(creada));
   }
@@ -55,7 +57,7 @@ public class IncidenciaController {
   @GetMapping("/api/v1/incidencias/mias")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
   public List<IncidenciaResponse> misIncidencias(
-      @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
+      @AuthenticationPrincipal PrincipalAutenticado principal) {
     return listarMisIncidenciasUseCase.execute(principal.usuarioId()).stream()
         .map(IncidenciaResponse::from)
         .toList();

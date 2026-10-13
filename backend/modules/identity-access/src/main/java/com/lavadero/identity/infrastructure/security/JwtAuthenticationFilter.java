@@ -1,5 +1,6 @@
 package com.lavadero.identity.infrastructure.security;
 
+import com.lavadero.shared.security.PrincipalAutenticado;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -20,8 +21,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Valida el access token JWT (firma + expiración) y, si es válido, puebla el {@code
- * SecurityContext} con un principal {@link JwtAuthenticatedPrincipal} y las authorities derivadas
- * del claim {@code roles} (prefijo {@code ROLE_}, requerido por {@code hasRole(...)} de Spring
+ * SecurityContext} con un principal {@link PrincipalAutenticado} y las authorities derivadas del
+ * claim {@code roles} (prefijo {@code ROLE_}, requerido por {@code hasRole(...)} de Spring
  * Security).
  *
  * <p>Se ejecuta ANTES de {@link TenantResolutionFilter}: primero se autentica (se confía en la
@@ -80,8 +81,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     List<String> rolesClaim = claims.get(JwtTokenService.CLAIM_ROLES, List.class);
     Set<String> roles = rolesClaim == null ? Set.of() : Set.copyOf(rolesClaim);
 
-    JwtAuthenticatedPrincipal principal =
-        new JwtAuthenticatedPrincipal(usuarioId, tenantId, sucursalId, roles, claims.getId());
+    PrincipalAutenticado principal =
+        new PrincipalAutenticado(usuarioId, tenantId, sucursalId, roles, claims.getId());
 
     List<GrantedAuthority> authorities =
         roles.stream()

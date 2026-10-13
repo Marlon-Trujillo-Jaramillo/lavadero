@@ -5,37 +5,41 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lavadero.shared.application.exception.ValidationException;
 import com.lavadero.tenant.application.port.PaymentGateway;
 import com.lavadero.tenant.domain.model.Pago;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashMap;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
 /**
- * Adaptador de {@link PaymentGateway} contra la API de Wompi (pasarela colombiana: PSE, tarjetas,
- * Nequi — ver decisión en spec de auditoría técnica/negocio 2026-08-18).
+ * Adaptador de {@link PaymentGateway} contra Wompi (pasarela colombiana: PSE, tarjetas, Nequi — ver
+ * decisión en spec de auditoría técnica/negocio 2026-08-18).
  *
- * <p>IMPORTANTE — sin cuenta Wompi real disponible al escribir esto: la forma de la petición de
- * "Payment Links" (endpoint, campos {@code amount_in_cents}/{@code single_use}/{@code reference})
- * y el mecanismo de verificación del webhook (checksum embebido en {@code signature.checksum},
- * calculado como SHA-256 de la concatenación de los valores de {@code signature.properties} +
- * {@code timestamp} + {@code eventsSecret} — NO un HMAC del payload crudo, ni un header de firma:
- * Wompi no envía firma por header) están implementados según la documentación pública conocida de
- * Wompi al momento de escribir esto, pero NUNCA se probaron contra un webhook real. Antes de
- * aceptar pagos reales: (1) confirmar contra la documentación vigente en https://docs.wompi.co que
- * el checksum se calcula así, y (2) probar un pago real en el ambiente sandbox de Wompi de punta a
- * punta.
+ * <p>Usa el Web Checkout de Wompi (redirección a {@code checkout.wompi.co/p/} con los datos
+ * firmados), no la API de Payment Links: así el backend no hace ninguna llamada saliente a Wompi
+ * (ni llave privada que custodiar) y el monto queda protegido por la firma de integridad — el
+ * cliente no puede cambiarlo sin invalidarla.
+ *
+ * <p>Verificado contra https://docs.wompi.co (2026-10):
+ *
+ * <ul>
+ *   <li>Firma de integridad: SHA-256 hex de {@code referencia + montoEnCentavos + moneda +
+ *       secretoIntegridad}.
+ *   <li>Webhook: checksum = SHA-256 de los valores de {@code signature.properties} (rutas dentro de
+ *       {@code data}, en orden) + {@code timestamp} (segundos UNIX) + secreto de eventos.
+ * </ul>
+ *
+ * Antes de aceptar pagos reales, probar un pago de punta a punta en el sandbox de Wompi.
  */
 @Component
 @EnableConfigurationProperties(WompiProperties.class)
@@ -43,84 +47,85 @@ public class WompiPaymentGateway implements PaymentGateway {
 
   private static final Logger log = LoggerFactory.getLogger(WompiPaymentGateway.class);
 
+  /**
+   * Campos que DEBEN estar cubiertos por el checksum: son los que deciden qué hace el webhook (qué
+   * transacción, si se aprobó y por cuánto). Wompi documenta que la lista puede crecer, así que se
+   * toleran propiedades adicionales — pero si falta alguna de estas, un evento auténtico reenviado
+   * con ese campo alterado pasaría la verificación.
+   */
+  static final Set<String> PROPIEDADES_FIRMADAS_REQUERIDAS =
+      Set.of("transaction.id", "transaction.status", "transaction.amount_in_cents");
+
+  private static final Set<String> ESTADOS_RECHAZADOS = Set.of("DECLINED", "VOIDED", "ERROR");
+
   private final WompiProperties properties;
-  private final RestClient restClient;
   private final ObjectMapper objectMapper;
 
   public WompiPaymentGateway(WompiProperties properties, ObjectMapper objectMapper) {
     this.properties = properties;
-    this.restClient = RestClient.create();
     this.objectMapper = objectMapper;
   }
 
   @Override
-  public CheckoutLink crearLinkDePago(Pago pago, String nombrePlan) {
-    if (!properties.isConfigured()) {
+  public DatosCheckout prepararCheckout(Pago pago) {
+    if (!properties.isCheckoutConfigurado()) {
       throw new ValidationException(
           "Los pagos todavía no están configurados en este ambiente (falta la cuenta de Wompi)");
     }
-
-    Map<String, Object> body = new LinkedHashMap<>();
-    body.put("name", nombrePlan);
-    body.put("description", "Suscripción Lavadero - " + nombrePlan);
-    body.put("single_use", true);
-    body.put("collect_shipping", false);
-    body.put("currency", pago.getMonto().moneda().getCurrencyCode());
-    body.put(
-        "amount_in_cents",
-        pago.getMonto().monto().multiply(BigDecimal.valueOf(100)).longValueExact());
-    body.put("reference", pago.getReferencia());
-    if (!properties.getRedirectUrl().isBlank()) {
-      body.put("redirect_url", properties.getRedirectUrl());
-    }
-
-    try {
-      Map<String, Object> response =
-          restClient
-              .post()
-              .uri(properties.getBaseUrl() + "/payment_links")
-              .header("Authorization", "Bearer " + properties.getPrivateKey())
-              .contentType(MediaType.APPLICATION_JSON)
-              .body(body)
-              .retrieve()
-              .body(new ParameterizedTypeReference<Map<String, Object>>() {});
-      @SuppressWarnings("unchecked")
-      Map<String, Object> data = (Map<String, Object>) response.get("data");
-      String linkId = String.valueOf(data.get("id"));
-      return new CheckoutLink("https://checkout.wompi.co/l/" + linkId);
-    } catch (RestClientException e) {
-      log.error("Error creando link de pago en Wompi (referencia={})", pago.getReferencia(), e);
-      throw new ValidationException("No se pudo generar el link de pago, intenta más tarde");
-    }
+    long montoEnCentavos = pago.montoEnCentavos();
+    String moneda = pago.getMonto().moneda().getCurrencyCode();
+    String firma =
+        sha256Hex(
+            pago.getReferencia() + montoEnCentavos + moneda + properties.getIntegritySecret());
+    return new DatosCheckout(
+        properties.getCheckoutUrl(),
+        properties.getPublicKey(),
+        pago.getReferencia(),
+        montoEnCentavos,
+        moneda,
+        firma,
+        properties.getRedirectUrl().isBlank() ? null : properties.getRedirectUrl());
   }
 
   @Override
   public boolean firmaValida(String payloadCrudo) {
-    if (!properties.isConfigured()) {
+    if (!properties.isEventosConfigurados()) {
       return false;
     }
     try {
       JsonNode raiz = objectMapper.readTree(payloadCrudo);
       JsonNode firma = raiz.path("signature");
       String checksumRecibido = firma.path("checksum").asText(null);
-      String timestamp = raiz.path("timestamp").asText(null);
-      if (checksumRecibido == null || checksumRecibido.isBlank() || timestamp == null) {
+      JsonNode timestamp = raiz.path("timestamp");
+      if (checksumRecibido == null || checksumRecibido.isBlank() || !timestamp.canConvertToLong()) {
+        return false;
+      }
+
+      List<String> propiedades = new ArrayList<>();
+      firma.path("properties").forEach(p -> propiedades.add(p.asText()));
+      if (!new HashSet<>(propiedades).containsAll(PROPIEDADES_FIRMADAS_REQUERIDAS)) {
+        log.warn(
+            "Webhook de Wompi sin firmar los campos requeridos ({} propiedades)",
+            propiedades.size());
         return false;
       }
 
       JsonNode data = raiz.path("data");
       StringBuilder concatenado = new StringBuilder();
-      for (JsonNode propiedad : firma.path("properties")) {
-        concatenado.append(valorEnRuta(data, propiedad.asText()));
+      for (String propiedad : propiedades) {
+        concatenado.append(valorEnRuta(data, propiedad));
       }
-      concatenado.append(timestamp).append(properties.getEventsSecret());
+      concatenado.append(timestamp.asLong()).append(properties.getEventsSecret());
 
       String calculado = sha256Hex(concatenado.toString());
       return MessageDigest.isEqual(
           calculado.getBytes(StandardCharsets.UTF_8),
           checksumRecibido.toLowerCase(Locale.ROOT).getBytes(StandardCharsets.UTF_8));
     } catch (Exception e) {
-      log.warn("No se pudo verificar la firma del webhook de Wompi", e);
+      // Sin stack trace ni mensaje: el endpoint es público y el mensaje de Jackson trae trozos
+      // del payload — cualquiera podría inundar los logs con contenido arbitrario.
+      log.warn(
+          "Webhook de Wompi ilegible al verificar la firma ({})", e.getClass().getSimpleName());
       return false;
     }
   }
@@ -135,35 +140,49 @@ public class WompiPaymentGateway implements PaymentGateway {
   }
 
   @Override
-  public Optional<ResultadoTransaccion> parsearEventoTransaccion(String payloadCrudo) {
+  public Optional<EventoTransaccion> parsearEventoTransaccion(String payloadCrudo) {
     try {
-      JsonNode transaccion = objectMapper.readTree(payloadCrudo).path("data").path("transaction");
-      if (transaccion.isMissingNode()) {
+      JsonNode raiz = objectMapper.readTree(payloadCrudo);
+      JsonNode transaccion = raiz.path("data").path("transaction");
+      if (transaccion.isMissingNode()
+          || !transaccion.path("amount_in_cents").canConvertToLong()
+          || !raiz.path("timestamp").canConvertToLong()) {
         return Optional.empty();
       }
       String referencia = transaccion.path("reference").asText(null);
       String idExterno = transaccion.path("id").asText(null);
-      String estado = transaccion.path("status").asText("");
-      if (referencia == null || idExterno == null) {
+      String moneda = transaccion.path("currency").asText(null);
+      if (referencia == null || idExterno == null || moneda == null) {
         return Optional.empty();
       }
       return Optional.of(
-          new ResultadoTransaccion(referencia, idExterno, "APPROVED".equalsIgnoreCase(estado)));
+          new EventoTransaccion(
+              referencia,
+              idExterno,
+              estadoDe(transaccion.path("status").asText("")),
+              transaccion.path("amount_in_cents").asLong(),
+              moneda,
+              Instant.ofEpochSecond(raiz.path("timestamp").asLong())));
     } catch (Exception e) {
-      log.warn("No se pudo parsear el payload del webhook de Wompi", e);
+      log.warn("Webhook de Wompi ilegible al parsearlo ({})", e.getClass().getSimpleName());
       return Optional.empty();
     }
   }
 
-  private static String sha256Hex(String data) {
+  private static EstadoTransaccion estadoDe(String estadoWompi) {
+    String estado = estadoWompi.toUpperCase(Locale.ROOT);
+    if ("APPROVED".equals(estado)) {
+      return EstadoTransaccion.APROBADA;
+    }
+    return ESTADOS_RECHAZADOS.contains(estado)
+        ? EstadoTransaccion.RECHAZADA
+        : EstadoTransaccion.EN_CURSO;
+  }
+
+  static String sha256Hex(String data) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-256");
-      byte[] hash = digest.digest(data.getBytes(StandardCharsets.UTF_8));
-      StringBuilder hex = new StringBuilder(hash.length * 2);
-      for (byte b : hash) {
-        hex.append(String.format("%02x", b));
-      }
-      return hex.toString();
+      return HexFormat.of().formatHex(digest.digest(data.getBytes(StandardCharsets.UTF_8)));
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("No se pudo calcular SHA-256", e);
     }

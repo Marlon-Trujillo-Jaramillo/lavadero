@@ -42,7 +42,9 @@ public class TokenIssuer {
 
   private AuthResultDto emitir(Usuario usuario, RefreshToken tokenAnterior) {
     String accessToken = tokenService.generarAccessToken(usuario);
-    String refreshTokenPlano = tokenService.generarRefreshTokenOpaco();
+    String refreshTokenPlano =
+        RefreshTokenFormato.componer(
+            usuario.getTenantId().orElse(null), tokenService.generarRefreshTokenOpaco());
     String hash = TokenHasher.sha256(refreshTokenPlano);
     Instant expiraEn = Instant.now().plus(VIGENCIA_REFRESH_TOKEN);
 

@@ -33,6 +33,9 @@ public class CancelarReservaUseCase implements UseCase<CancelarReservaCommand, R
       throw new ForbiddenException(
           "Solo el cliente dueño de la reserva o el personal del lavadero pueden cancelarla");
     }
+    if (!esDuenio) {
+      input.alcance().verificar(reserva.getSucursalId());
+    }
 
     reserva.cancelar();
     return ReservaMapper.toDto(reservaRepository.save(reserva));

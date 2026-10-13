@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Set;
+import java.util.Map;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -21,8 +21,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * distribuido (Bucket4j soporta Redis vía `bucket4j-redis`, ya presente en
  * `infra/docker-compose.yml` para cuando llegue esa fase).
  *
- * <p>Límite: 5 intentos/minuto por IP y por ruta protegida. Excedido el límite, responde 429 sin
- * llegar a ejecutar el controlador.
+ * <p>Límite por IP y por ruta, configurable por ruta ({@link #LIMITES}): 5/minuto para auth y
+ * onboarding; 120/minuto para el webhook público de Wompi (la pasarela puede mandar ráfagas
+ * legítimas, pero sin tope cualquiera podría forzar a verificar firmas sin fin). Excedido el
+ * límite, responde 429 sin llegar a ejecutar el controlador.
  *
  * <p>Los buckets se guardan en una cache con eviction por inactividad ({@code expireAfterAccess}),
  * no en un mapa simple: una IP que deja de pegarle al endpoint no debe ocupar memoria para siempre.
@@ -32,14 +34,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
-  private static final Set<String> RUTAS_LIMITADAS =
-      Set.of(
-          "/api/v1/auth/login",
-          "/api/v1/auth/refresh",
-          "/api/v1/auth/register",
-          "/api/v1/onboarding/tenants");
-  private static final int CAPACIDAD = 5;
-  private static final Duration VENTANA = Duration.ofMinutes(1);
+  /** Capacidad de un bucket por IP+ruta, que se recarga entera cada {@code ventana}. */
+  record Limite(int capacidad, Duration ventana) {}
+
+  private static final Limite ESTRICTO = new Limite(5, Duration.ofMinutes(1));
+
+  static final Map<String, Limite> LIMITES =
+      Map.of(
+          "/api/v1/auth/login", ESTRICTO,
+          "/api/v1/auth/refresh", ESTRICTO,
+          "/api/v1/auth/register", ESTRICTO,
+          "/api/v1/onboarding/tenants", ESTRICTO,
+          "/api/v1/pagos/webhook/wompi", new Limite(120, Duration.ofMinutes(1)));
+
   private static final Duration TTL_INACTIVIDAD = Duration.ofMinutes(10);
 
   private final Cache<String, Bucket> buckets =
@@ -51,13 +58,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
 
     String path = request.getRequestURI();
-    if (!RUTAS_LIMITADAS.contains(path)) {
+    Limite limite = LIMITES.get(path);
+    if (limite == null) {
       filterChain.doFilter(request, response);
       return;
     }
 
-    String clave = path + ":" + resolverIp(request);
-    Bucket bucket = buckets.get(clave, k -> nuevoBucket());
+    // getRemoteAddr y no X-Forwarded-For: ese header lo controla el cliente, y rotarlo daba
+    // un bucket nuevo por request. Detrás de un proxy, `server.forward-headers-strategy: native`
+    // (application.yml) hace que Tomcat lo resuelva solo si viene de un proxy interno.
+    String clave = path + ":" + request.getRemoteAddr();
+    Bucket bucket = buckets.get(clave, k -> nuevoBucket(limite));
 
     if (bucket.tryConsume(1)) {
       filterChain.doFilter(request, response);
@@ -71,17 +82,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
   }
 
-  private Bucket nuevoBucket() {
+  private static Bucket nuevoBucket(Limite limite) {
     @SuppressWarnings("deprecation")
-    Bandwidth limite = Bandwidth.simple(CAPACIDAD, VENTANA);
-    return Bucket.builder().addLimit(limite).build();
-  }
-
-  private String resolverIp(HttpServletRequest request) {
-    String forwarded = request.getHeader("X-Forwarded-For");
-    if (forwarded != null && !forwarded.isBlank()) {
-      return forwarded.split(",")[0].trim();
-    }
-    return request.getRemoteAddr();
+    Bandwidth ancho = Bandwidth.simple(limite.capacidad(), limite.ventana());
+    return Bucket.builder().addLimit(ancho).build();
   }
 }

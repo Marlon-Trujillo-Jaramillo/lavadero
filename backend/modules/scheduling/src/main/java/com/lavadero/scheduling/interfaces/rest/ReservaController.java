@@ -1,9 +1,10 @@
 package com.lavadero.scheduling.interfaces.rest;
 
-import com.lavadero.identity.infrastructure.security.JwtAuthenticatedPrincipal;
 import com.lavadero.scheduling.application.command.AgendaDiaQuery;
 import com.lavadero.scheduling.application.command.CancelarReservaCommand;
 import com.lavadero.scheduling.application.command.CrearReservaCommand;
+import com.lavadero.scheduling.application.command.MisReservasQuery;
+import com.lavadero.scheduling.application.command.ReservaStaffCommand;
 import com.lavadero.scheduling.application.dto.ReservaDto;
 import com.lavadero.scheduling.application.usecase.CancelarReservaUseCase;
 import com.lavadero.scheduling.application.usecase.CompletarReservaUseCase;
@@ -13,10 +14,11 @@ import com.lavadero.scheduling.application.usecase.ListarAgendaDelDiaUseCase;
 import com.lavadero.scheduling.application.usecase.ListarMisReservasUseCase;
 import com.lavadero.scheduling.interfaces.rest.dto.CrearReservaRequest;
 import com.lavadero.scheduling.interfaces.rest.dto.ReservaResponse;
+import com.lavadero.shared.security.AlcanceSucursal;
+import com.lavadero.shared.security.PrincipalAutenticado;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -33,6 +35,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ReservaController {
+
+  /** Sin {@code limite}, "mis reservas" devuelve como mucho esto (las más recientes). */
+  static final int LIMITE_MIS_RESERVAS_DEFECTO = 50;
+
+  static final int LIMITE_MIS_RESERVAS_MAXIMO = 200;
 
   private static final Set<String> ROLES_STAFF =
       Set.of("EMPLEADO", "ADMIN_SUCURSAL", "ADMIN_TENANT", "SUPER_ADMIN");
@@ -62,7 +69,7 @@ public class ReservaController {
   @PostMapping("/api/v1/agenda/reservas")
   @PreAuthorize("hasRole('CLIENTE')")
   public ResponseEntity<ReservaResponse> crear(
-      @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
+      @AuthenticationPrincipal PrincipalAutenticado principal,
       @Valid @RequestBody CrearReservaRequest request) {
     ReservaDto creada =
         crearReservaUseCase.execute(
@@ -77,38 +84,61 @@ public class ReservaController {
 
   /**
    * Agenda de un día para una sucursal — vista de empleado/admin. {@code fecha} es un ISO date
-   * (yyyy-MM-dd), interpretado en UTC.
+   * (yyyy-MM-dd), interpretado en UTC. Un ADMIN_SUCURSAL solo puede pedir la suya (403 si no).
    */
   @GetMapping("/api/v1/agenda/reservas")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
   public List<ReservaResponse> agendaDelDia(
-      @RequestParam UUID sucursalId, @RequestParam LocalDate fecha) {
-    var desde = fecha.atStartOfDay(ZoneOffset.UTC).toInstant();
-    var hasta = fecha.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-    return listarAgendaDelDiaUseCase.execute(new AgendaDiaQuery(sucursalId, desde, hasta)).stream()
+      @AuthenticationPrincipal PrincipalAutenticado principal,
+      @RequestParam UUID sucursalId,
+      @RequestParam LocalDate fecha) {
+    var desde = FechasConsulta.inicioDelDia(fecha, "fecha");
+    var hasta = FechasConsulta.finDelDia(fecha, "fecha");
+    return listarAgendaDelDiaUseCase
+        .execute(new AgendaDiaQuery(sucursalId, desde, hasta, AlcanceSucursal.de(principal)))
+        .stream()
         .map(ReservaResponse::from)
         .toList();
   }
 
+  /**
+   * Reservas del cliente, más recientes primero. {@code limite} opcional (por defecto {@value
+   * #LIMITE_MIS_RESERVAS_DEFECTO}, se acota a [1, {@value #LIMITE_MIS_RESERVAS_MAXIMO}]); {@code
+   * desde} opcional (ISO date, UTC): solo reservas que inician ese día o después. La respuesta
+   * sigue siendo una lista plana (compatible con los clientes existentes).
+   */
   @GetMapping("/api/v1/agenda/reservas/mias")
   @PreAuthorize("hasRole('CLIENTE')")
   public List<ReservaResponse> misReservas(
-      @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
-    return listarMisReservasUseCase.execute(principal.usuarioId()).stream()
+      @AuthenticationPrincipal PrincipalAutenticado principal,
+      @RequestParam(required = false) Integer limite,
+      @RequestParam(required = false) LocalDate desde) {
+    int limiteEfectivo =
+        Math.clamp(
+            limite == null ? LIMITE_MIS_RESERVAS_DEFECTO : limite, 1, LIMITE_MIS_RESERVAS_MAXIMO);
+    var desdeInstant = desde == null ? null : FechasConsulta.inicioDelDia(desde, "desde");
+    return listarMisReservasUseCase
+        .execute(new MisReservasQuery(principal.usuarioId(), desdeInstant, limiteEfectivo))
+        .stream()
         .map(ReservaResponse::from)
         .toList();
   }
 
   @PatchMapping("/api/v1/agenda/reservas/{id}/iniciar")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
-  public ReservaResponse iniciar(@PathVariable UUID id) {
-    return ReservaResponse.from(iniciarReservaUseCase.execute(id));
+  public ReservaResponse iniciar(
+      @PathVariable UUID id, @AuthenticationPrincipal PrincipalAutenticado principal) {
+    return ReservaResponse.from(
+        iniciarReservaUseCase.execute(new ReservaStaffCommand(id, AlcanceSucursal.de(principal))));
   }
 
   @PatchMapping("/api/v1/agenda/reservas/{id}/completar")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
-  public ReservaResponse completar(@PathVariable UUID id) {
-    return ReservaResponse.from(completarReservaUseCase.execute(id));
+  public ReservaResponse completar(
+      @PathVariable UUID id, @AuthenticationPrincipal PrincipalAutenticado principal) {
+    return ReservaResponse.from(
+        completarReservaUseCase.execute(
+            new ReservaStaffCommand(id, AlcanceSucursal.de(principal))));
   }
 
   /**
@@ -116,10 +146,11 @@ public class ReservaController {
    */
   @PatchMapping("/api/v1/agenda/reservas/{id}/cancelar")
   public ReservaResponse cancelar(
-      @PathVariable UUID id, @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
+      @PathVariable UUID id, @AuthenticationPrincipal PrincipalAutenticado principal) {
     boolean esStaff = principal.roles().stream().anyMatch(ROLES_STAFF::contains);
     return ReservaResponse.from(
         cancelarReservaUseCase.execute(
-            new CancelarReservaCommand(id, principal.usuarioId(), esStaff)));
+            new CancelarReservaCommand(
+                id, principal.usuarioId(), esStaff, AlcanceSucursal.de(principal))));
   }
 }

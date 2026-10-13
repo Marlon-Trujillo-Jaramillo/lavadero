@@ -17,8 +17,11 @@ public interface UsuarioRepository {
 
   boolean existsByEmailAndTenantId(String email, UUID tenantId);
 
-  /** Empleados (rol EMPLEADO) del tenant actual — acotado por RLS, sin filtro manual. */
-  List<Usuario> findEmpleadosDelTenantActual();
+  /**
+   * Empleados (rol EMPLEADO) del tenant actual — acotado por RLS, sin filtro manual de tenant. Con
+   * {@code sucursalId} no nulo, solo los de esa sucursal.
+   */
+  List<Usuario> findEmpleadosDelTenantActual(UUID sucursalId);
 
   Usuario save(Usuario usuario);
 }

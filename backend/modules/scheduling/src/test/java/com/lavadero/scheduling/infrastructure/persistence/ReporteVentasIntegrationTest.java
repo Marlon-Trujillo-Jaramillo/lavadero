@@ -87,13 +87,49 @@ class ReporteVentasIntegrationTest {
             tenant,
             () ->
                 reservaRepository.obtenerResumenVentas(
-                    hoy.minusSeconds(3600), hoy.plusSeconds(3600)));
+                    hoy.minusSeconds(3600), hoy.plusSeconds(3600), null));
 
     assertThat(resumen.ingresosTotales().monto()).isEqualByComparingTo("50000.00");
     assertThat(resumen.totalReservasCompletadas()).isEqualTo(3);
     assertThat(resumen.serviciosMasPedidos()).hasSize(2);
     assertThat(resumen.serviciosMasPedidos().get(0).servicioId()).isEqualTo(servicioBasico);
     assertThat(resumen.serviciosMasPedidos().get(0).cantidad()).isEqualTo(2);
+  }
+
+  @Test
+  void filtrarPorSucursalSoloAgregaLasReservasDeEsaSucursal() {
+    var fixtures = new RlsTestFixtures(jdbcTemplate, transactionManager);
+
+    UUID tenant = fixtures.crearTenant("Lavadero B");
+    UUID sucursalNorte = fixtures.crearSucursal(tenant);
+    UUID sucursalSur = fixtures.crearSucursal(tenant);
+    UUID servicio = fixtures.crearServicio(tenant, "Lavado básico");
+    UUID cliente = fixtures.crearUsuario(tenant);
+    Instant hoy = Instant.parse("2026-08-01T10:00:00Z");
+
+    guardarCompletada(fixtures, tenant, sucursalNorte, servicio, cliente, hoy, 15000);
+    guardarCompletada(fixtures, tenant, sucursalSur, servicio, cliente, hoy, 40000);
+
+    ResumenVentas soloNorte =
+        fixtures.comoTenant(
+            tenant,
+            () ->
+                reservaRepository.obtenerResumenVentas(
+                    hoy.minusSeconds(3600), hoy.plusSeconds(3600), sucursalNorte));
+    ResumenVentas todo =
+        fixtures.comoTenant(
+            tenant,
+            () ->
+                reservaRepository.obtenerResumenVentas(
+                    hoy.minusSeconds(3600), hoy.plusSeconds(3600), null));
+
+    assertThat(soloNorte.ingresosTotales().monto()).isEqualByComparingTo("15000.00");
+    assertThat(soloNorte.totalReservasCompletadas()).isEqualTo(1);
+    assertThat(soloNorte.serviciosMasPedidos())
+        .singleElement()
+        .extracting("cantidad")
+        .isEqualTo(1L);
+    assertThat(todo.ingresosTotales().monto()).isEqualByComparingTo("55000.00");
   }
 
   private void guardarCompletada(
