@@ -54,15 +54,16 @@ class SubscriptionPlan {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        nombre,
-        precio,
-        moneda,
-        maxSucursales,
-        maxEmpleados,
-        Object.hashAll(features),
-      );
+    id,
+    nombre,
+    precio,
+    moneda,
+    maxSucursales,
+    maxEmpleados,
+    Object.hashAll(features),
+  );
 
   @override
-  String toString() => 'SubscriptionPlan(id: $id, nombre: $nombre, precio: $precio $moneda)';
+  String toString() =>
+      'SubscriptionPlan(id: $id, nombre: $nombre, precio: $precio $moneda)';
 }

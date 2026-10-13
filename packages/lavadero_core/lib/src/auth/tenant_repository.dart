@@ -32,7 +32,24 @@ class TenantRepository {
     try {
       final response = await _dio.get<List<dynamic>>('/plataforma/planes');
       return (response.data ?? [])
-          .map((json) => SubscriptionPlan.fromJson(json as Map<String, dynamic>))
+          .map(
+            (json) => SubscriptionPlan.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Planes contratables por el lavadero actual (`GET /planes`, ADMIN_TENANT):
+  /// solo lectura, para la pantalla de suscripción.
+  Future<List<SubscriptionPlan>> listarPlanesDisponibles() async {
+    try {
+      final response = await _dio.get<List<dynamic>>('/planes');
+      return (response.data ?? [])
+          .map(
+            (json) => SubscriptionPlan.fromJson(json as Map<String, dynamic>),
+          )
           .toList();
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);

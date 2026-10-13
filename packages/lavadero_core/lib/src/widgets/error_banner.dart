@@ -3,42 +3,75 @@ import 'package:flutter/material.dart';
 import '../theme/design_tokens.dart';
 
 /// Banner de error compacto para mostrar el `message` de un `ApiException`
-/// (u otro error) debajo de un formulario, con opción de descartarlo.
+/// (u otro error), con opción de descartarlo o reintentar.
 class ErrorBanner extends StatelessWidget {
-  const ErrorBanner({super.key, required this.message, this.onDismiss});
+  const ErrorBanner({
+    super.key,
+    required this.message,
+    this.onDismiss,
+    this.onRetry,
+  });
 
   final String message;
   final VoidCallback? onDismiss;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: LavaderoSpacing.md,
-        vertical: LavaderoSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(LavaderoRadii.sm),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: scheme.onErrorContainer),
-          const SizedBox(width: LavaderoSpacing.sm),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: scheme.onErrorContainer),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return AnimatedSize(
+      duration: LavaderoMotion.normal,
+      curve: LavaderoMotion.emphasized,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(
+          LavaderoSpacing.md,
+          LavaderoSpacing.smd,
+          LavaderoSpacing.sm,
+          LavaderoSpacing.smd,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(LavaderoRadii.md),
+          border: Border.all(color: scheme.error.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: LavaderoSizes.iconMd,
+              color: scheme.error,
             ),
-          ),
-          if (onDismiss != null)
-            IconButton(
-              icon: Icon(Icons.close, color: scheme.onErrorContainer),
-              onPressed: onDismiss,
-              tooltip: 'Cerrar',
+            const SizedBox(width: LavaderoSpacing.smd),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onErrorContainer,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
-        ],
+            if (onRetry != null)
+              TextButton(
+                onPressed: onRetry,
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onErrorContainer,
+                ),
+                child: const Text('Reintentar'),
+              ),
+            if (onDismiss != null)
+              IconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: LavaderoSizes.iconMd,
+                  color: scheme.onErrorContainer,
+                ),
+                onPressed: onDismiss,
+                tooltip: 'Cerrar',
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -42,4 +42,84 @@ void main() {
     expect(await tokenStorage.readRefreshToken(), isNull);
     expect(await tokenStorage.hasSession(), isFalse);
   });
+
+  test('saveTokens never writes concurrently (web key-generation race)',
+      () async {
+    final storage = _ConcurrencyProbeStorage();
+    await TokenStorage(storage: storage).saveTokens(
+      accessToken: 'a',
+      refreshToken: 'r',
+    );
+
+    expect(storage.maxInFlightWrites, 1);
+    expect(storage.values.length, 2);
+  });
+
+  test('an unreadable token is treated as no session and storage is cleared',
+      () async {
+    final storage = _ConcurrencyProbeStorage()..failReads = true;
+    final tokens = TokenStorage(storage: storage);
+
+    expect(await tokens.readAccessToken(), isNull);
+    expect(await tokens.hasSession(), isFalse);
+    expect(storage.deletedKeys, isNotEmpty);
+  });
+}
+
+/// Simula el almacenamiento web: cada escritura es asíncrona, y registra
+/// cuántas hubo en vuelo a la vez.
+class _ConcurrencyProbeStorage extends FlutterSecureStorage {
+  _ConcurrencyProbeStorage();
+
+  final Map<String, String> values = {};
+  final List<String> deletedKeys = [];
+  int _inFlight = 0;
+  int maxInFlightWrites = 0;
+  bool failReads = false;
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    _inFlight++;
+    if (_inFlight > maxInFlightWrites) maxInFlightWrites = _inFlight;
+    await Future<void>.delayed(Duration.zero);
+    values[key] = value!;
+    _inFlight--;
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (failReads) throw StateError('OperationError');
+    return values[key];
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    deletedKeys.add(key);
+    values.remove(key);
+  }
 }

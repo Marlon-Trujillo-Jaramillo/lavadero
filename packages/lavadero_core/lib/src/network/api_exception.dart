@@ -20,10 +20,12 @@ class ApiException implements Exception {
 
   /// Error de transporte: sin conexión, timeout, host no resoluble, etc.
   factory ApiException.network([String? message]) => ApiException(
-        message: message ?? 'No fue posible conectar con el servidor. '
+    message:
+        message ??
+        'No fue posible conectar con el servidor. '
             'Verifica tu conexión e intenta de nuevo.',
-        isNetworkError: true,
-      );
+    isNetworkError: true,
+  );
 
   /// Construye la excepción a partir de un [DioException], intentando leer
   /// el body de error estándar del backend cuando está presente.
@@ -46,7 +48,8 @@ class ApiException implements Exception {
           level: SentryLevel.warning,
           data: {
             if (exception.path != null) 'path': exception.path!,
-            if (exception.statusCode != null) 'statusCode': exception.statusCode!,
+            if (exception.statusCode != null)
+              'statusCode': exception.statusCode!,
           },
         ),
       );
@@ -76,7 +79,8 @@ class ApiException implements Exception {
     final data = response.data;
     if (data is Map<String, dynamic>) {
       return ApiException(
-        message: (data['message'] as String?) ??
+        message:
+            (data['message'] as String?) ??
             'Ocurrió un error inesperado (${response.statusCode}).',
         statusCode: response.statusCode,
         error: data['error'] as String?,

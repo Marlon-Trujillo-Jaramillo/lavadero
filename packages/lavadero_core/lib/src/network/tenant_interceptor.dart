@@ -12,10 +12,7 @@ class TenantInterceptor extends Interceptor {
   final String? Function() tenantSlugProvider;
 
   @override
-  void onRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (!options.headers.containsKey('X-Tenant-Slug')) {
       final slug = tenantSlugProvider();
       if (slug != null && slug.isNotEmpty) {

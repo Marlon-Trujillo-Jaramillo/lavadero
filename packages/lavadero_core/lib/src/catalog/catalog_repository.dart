@@ -24,8 +24,9 @@ class CatalogRepository {
   /// Cliente/empleado: solo servicios activos.
   Future<List<ServiceItem>> listarActivos() async {
     try {
-      final response =
-          await _dio.get<List<dynamic>>('/catalogo/servicios/activos');
+      final response = await _dio.get<List<dynamic>>(
+        '/catalogo/servicios/activos',
+      );
       return (response.data ?? [])
           .map((json) => ServiceItem.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -79,7 +80,10 @@ class CatalogRepository {
     }
   }
 
-  Future<ServiceItem> cambiarEstado({required String id, required bool activo}) async {
+  Future<ServiceItem> cambiarEstado({
+    required String id,
+    required bool activo,
+  }) async {
     try {
       final response = await _dio.patch<Map<String, dynamic>>(
         '/catalogo/servicios/$id/estado',

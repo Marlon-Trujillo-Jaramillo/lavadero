@@ -36,7 +36,11 @@ class SchedulingRepository {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/sucursales',
-        data: {'nombre': nombre, 'direccion': direccion, 'capacidadSimultanea': capacidadSimultanea},
+        data: {
+          'nombre': nombre,
+          'direccion': direccion,
+          'capacidadSimultanea': capacidadSimultanea,
+        },
       );
       return Sucursal.fromJson(response.data!);
     } on DioException catch (e) {
@@ -53,7 +57,11 @@ class SchedulingRepository {
     try {
       final response = await _dio.put<Map<String, dynamic>>(
         '/sucursales/$id',
-        data: {'nombre': nombre, 'direccion': direccion, 'capacidadSimultanea': capacidadSimultanea},
+        data: {
+          'nombre': nombre,
+          'direccion': direccion,
+          'capacidadSimultanea': capacidadSimultanea,
+        },
       );
       return Sucursal.fromJson(response.data!);
     } on DioException catch (e) {
@@ -82,10 +90,18 @@ class SchedulingRepository {
     }
   }
 
-  /// Cliente: sus propias reservas (cualquier estado).
-  Future<List<Reserva>> misReservas() async {
+  /// Cliente: sus propias reservas (cualquier estado), más recientes primero. El backend aplica un
+  /// tope por defecto (50); [limite] (máx. 200) y [desde] (solo reservas desde ese día) son
+  /// opcionales.
+  Future<List<Reserva>> misReservas({int? limite, DateTime? desde}) async {
     try {
-      final response = await _dio.get<List<dynamic>>('/agenda/reservas/mias');
+      final response = await _dio.get<List<dynamic>>(
+        '/agenda/reservas/mias',
+        queryParameters: {
+          if (limite != null) 'limite': limite,
+          if (desde != null) 'desde': desde.toIso8601String().substring(0, 10),
+        },
+      );
       return (response.data ?? [])
           .map((json) => Reserva.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -95,7 +111,10 @@ class SchedulingRepository {
   }
 
   /// Empleado/admin: agenda de una sucursal para un día.
-  Future<List<Reserva>> agendaDelDia({required String sucursalId, required DateTime fecha}) async {
+  Future<List<Reserva>> agendaDelDia({
+    required String sucursalId,
+    required DateTime fecha,
+  }) async {
     try {
       final response = await _dio.get<List<dynamic>>(
         '/agenda/reservas',
@@ -114,7 +133,10 @@ class SchedulingRepository {
   }
 
   /// Admin: resumen de ventas (ingresos, reservas completadas, servicios más pedidos) en un rango.
-  Future<ResumenVentas> resumenVentas({required DateTime desde, required DateTime hasta}) async {
+  Future<ResumenVentas> resumenVentas({
+    required DateTime desde,
+    required DateTime hasta,
+  }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/agenda/reportes/resumen',
@@ -129,16 +151,20 @@ class SchedulingRepository {
     }
   }
 
-  Future<Reserva> iniciar(String reservaId) => _cambiarEstado(reservaId, 'iniciar');
+  Future<Reserva> iniciar(String reservaId) =>
+      _cambiarEstado(reservaId, 'iniciar');
 
-  Future<Reserva> completar(String reservaId) => _cambiarEstado(reservaId, 'completar');
+  Future<Reserva> completar(String reservaId) =>
+      _cambiarEstado(reservaId, 'completar');
 
-  Future<Reserva> cancelar(String reservaId) => _cambiarEstado(reservaId, 'cancelar');
+  Future<Reserva> cancelar(String reservaId) =>
+      _cambiarEstado(reservaId, 'cancelar');
 
   Future<Reserva> _cambiarEstado(String reservaId, String accion) async {
     try {
-      final response =
-          await _dio.patch<Map<String, dynamic>>('/agenda/reservas/$reservaId/$accion');
+      final response = await _dio.patch<Map<String, dynamic>>(
+        '/agenda/reservas/$reservaId/$accion',
+      );
       return Reserva.fromJson(response.data!);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
@@ -148,7 +174,9 @@ class SchedulingRepository {
   /// Checklist de servicio de una reserva (los 5 ítems fijos, con su estado actual).
   Future<List<ChecklistItem>> obtenerChecklist(String reservaId) async {
     try {
-      final response = await _dio.get<List<dynamic>>('/agenda/reservas/$reservaId/checklist');
+      final response = await _dio.get<List<dynamic>>(
+        '/agenda/reservas/$reservaId/checklist',
+      );
       return (response.data ?? [])
           .map((json) => ChecklistItem.fromJson(json as Map<String, dynamic>))
           .toList();
