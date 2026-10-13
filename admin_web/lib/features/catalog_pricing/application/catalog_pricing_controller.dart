@@ -10,30 +10,39 @@ class CatalogPricingState {
     this.items = const [],
     this.isLoading = false,
     this.errorMessage,
+    this.cambiandoEstadoId,
   });
 
   final List<ServiceItem> items;
   final bool isLoading;
   final String? errorMessage;
 
+  /// Servicio cuyo activo/inactivo se está guardando (loading en su propio switch).
+  final String? cambiandoEstadoId;
+
   CatalogPricingState copyWith({
     List<ServiceItem>? items,
     bool? isLoading,
     String? errorMessage,
     bool clearError = false,
+    String? cambiandoEstadoId,
+    bool clearCambiandoEstadoId = false,
   }) {
     return CatalogPricingState(
       items: items ?? this.items,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      cambiandoEstadoId: clearCambiandoEstadoId
+          ? null
+          : (cambiandoEstadoId ?? this.cambiandoEstadoId),
     );
   }
 }
 
 final catalogPricingControllerProvider =
     NotifierProvider<CatalogPricingController, CatalogPricingState>(
-  CatalogPricingController.new,
-);
+      CatalogPricingController.new,
+    );
 
 class CatalogPricingController extends Notifier<CatalogPricingState> {
   @override
@@ -61,7 +70,9 @@ class CatalogPricingController extends Notifier<CatalogPricingState> {
     required int duracionEstimadaMinutos,
     required double precio,
   }) async {
-    await ref.read(catalogRepositoryProvider).crear(
+    await ref
+        .read(catalogRepositoryProvider)
+        .crear(
           nombre: nombre,
           descripcion: descripcion,
           duracionEstimadaMinutos: duracionEstimadaMinutos,
@@ -77,7 +88,9 @@ class CatalogPricingController extends Notifier<CatalogPricingState> {
     required int duracionEstimadaMinutos,
     required double precio,
   }) async {
-    await ref.read(catalogRepositoryProvider).actualizar(
+    await ref
+        .read(catalogRepositoryProvider)
+        .actualizar(
           id: id,
           nombre: nombre,
           descripcion: descripcion,
@@ -87,8 +100,23 @@ class CatalogPricingController extends Notifier<CatalogPricingState> {
     await cargar();
   }
 
+  /// A diferencia de crear/actualizar (que tienen su diálogo para mostrar el error), el switch de
+  /// la tarjeta no tiene dónde mostrarlo: el error queda en el estado. Antes la excepción escapaba
+  /// sin capturar desde el `onChanged` del switch.
   Future<void> cambiarEstado({required String id, required bool activo}) async {
-    await ref.read(catalogRepositoryProvider).cambiarEstado(id: id, activo: activo);
-    await cargar();
+    if (state.cambiandoEstadoId != null) return;
+    state = state.copyWith(cambiandoEstadoId: id, clearError: true);
+    try {
+      await ref
+          .read(catalogRepositoryProvider)
+          .cambiarEstado(id: id, activo: activo);
+      await cargar();
+    } on ApiException catch (e) {
+      state = state.copyWith(errorMessage: e.message);
+    } finally {
+      state = state.copyWith(clearCambiandoEstadoId: true);
+    }
   }
+
+  void descartarError() => state = state.copyWith(clearError: true);
 }

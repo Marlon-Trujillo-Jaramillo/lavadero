@@ -5,9 +5,8 @@ import 'package:lavadero_core/lavadero_core.dart';
 import '../../../app/di/providers.dart';
 import '../application/admin_auth_controller.dart';
 
-/// Login de administración (dueño de lavadero / super-admin). UI de
-/// escritorio/web: card centrada, en vez del layout mobile de
-/// `mobile_app/features/auth/presentation/login_screen.dart`. Reutiliza la
+/// Login de administración (dueño de lavadero / super-admin) sobre
+/// [AuthLayout]: panel de marca a la izquierda y formulario a la derecha. Reutiliza la
 /// lógica de auth de `lavadero_core` (mismo `AuthRepository`, mismo patrón
 /// de refresh transparente vía `ApiClient`).
 class AdminLoginScreen extends ConsumerStatefulWidget {
@@ -42,7 +41,9 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     final tenantSlug = _tenantSlugController.text.trim();
     try {
       ref.read(selectedTenantSlugProvider.notifier).state = tenantSlug;
-      await ref.read(adminAuthControllerProvider.notifier).login(
+      await ref
+          .read(adminAuthControllerProvider.notifier)
+          .login(
             tenantSlug: tenantSlug,
             email: _emailController.text.trim(),
             password: _passwordController.text,
@@ -57,81 +58,104 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Card(
-            margin: const EdgeInsets.all(LavaderoSpacing.lg),
-            child: Padding(
-              padding: const EdgeInsets.all(LavaderoSpacing.xl),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(
-                      Icons.admin_panel_settings_outlined,
-                      size: 48,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: LavaderoSpacing.sm),
-                    Text(
-                      'Lavadero Admin',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: LavaderoSpacing.lg),
-                    TextFormField(
-                      controller: _tenantSlugController,
-                      decoration: const InputDecoration(
-                        labelText: 'Slug del lavadero (tenant)',
-                        helperText: 'Dejar vacío para ingresar como '
-                            'SUPER_ADMIN de plataforma',
-                      ),
-                    ),
-                    const SizedBox(height: LavaderoSpacing.sm),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      validator: (value) =>
-                          (value == null || !value.contains('@'))
-                              ? 'Ingresa un email válido'
-                              : null,
-                    ),
-                    const SizedBox(height: LavaderoSpacing.sm),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Contraseña'),
-                      validator: (value) =>
-                          (value == null || value.isEmpty)
-                              ? 'Ingresa tu contraseña'
-                              : null,
-                      onFieldSubmitted: (_) => _submit(),
-                    ),
-                    const SizedBox(height: LavaderoSpacing.md),
-                    if (_errorMessage != null) ...[
-                      ErrorBanner(
-                        message: _errorMessage!,
-                        onDismiss: () => setState(() => _errorMessage = null),
-                      ),
-                      const SizedBox(height: LavaderoSpacing.sm),
-                    ],
-                    LoadingButton(
-                      isLoading: _isLoading,
-                      onPressed: _submit,
-                      child: const Text('Ingresar'),
-                    ),
-                  ],
+    return AuthLayout(
+      title: 'Bienvenido de nuevo',
+      subtitle: 'Ingresa al panel de tu lavadero.',
+      brandHeadline: 'Tu lavadero,\nbajo control.',
+      brandMessage:
+          'Agenda del día, equipo, precios y resultados en tiempo real, '
+          'desde cualquier navegador.',
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _tenantSlugController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Lavadero',
+                  hintText: 'ej. lavadero-centro',
+                  prefixIcon: Icon(Icons.storefront_outlined),
+                  helperText: 'Déjalo vacío si administras la plataforma',
                 ),
               ),
-            ),
+              const SizedBox(height: LavaderoSpacing.md),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                ),
+                validator: (value) => (value == null || !value.contains('@'))
+                    ? 'Ingresa un email válido'
+                    : null,
+              ),
+              const SizedBox(height: LavaderoSpacing.md),
+              _PasswordField(
+                controller: _passwordController,
+                onSubmitted: _submit,
+              ),
+              const SizedBox(height: LavaderoSpacing.lg),
+              if (_errorMessage != null) ...[
+                ErrorBanner(
+                  message: _errorMessage!,
+                  onDismiss: () => setState(() => _errorMessage = null),
+                ),
+                const SizedBox(height: LavaderoSpacing.md),
+              ],
+              LoadingButton(
+                isLoading: _isLoading,
+                onPressed: _submit,
+                child: const Text('Ingresar'),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PasswordField extends StatefulWidget {
+  const _PasswordField({required this.controller, required this.onSubmitted});
+
+  final TextEditingController controller;
+  final VoidCallback onSubmitted;
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      autofillHints: const [AutofillHints.password],
+      decoration: InputDecoration(
+        labelText: 'Contraseña',
+        prefixIcon: const Icon(Icons.lock_outline_rounded),
+        suffixIcon: IconButton(
+          tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
+          icon: Icon(
+            _obscure
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+          ),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
+      validator: (value) =>
+          (value == null || value.isEmpty) ? 'Ingresa tu contraseña' : null,
+      onFieldSubmitted: (_) => widget.onSubmitted(),
     );
   }
 }

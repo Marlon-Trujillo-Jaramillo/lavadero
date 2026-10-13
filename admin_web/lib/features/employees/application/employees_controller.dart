@@ -34,9 +34,10 @@ class EmployeesState {
   }
 }
 
-final employeesControllerProvider = NotifierProvider<EmployeesController, EmployeesState>(
-  EmployeesController.new,
-);
+final employeesControllerProvider =
+    NotifierProvider<EmployeesController, EmployeesState>(
+      EmployeesController.new,
+    );
 
 class EmployeesController extends Notifier<EmployeesState> {
   @override
@@ -49,8 +50,14 @@ class EmployeesController extends Notifier<EmployeesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final empleados = await ref.read(empleadoRepositoryProvider).listar();
-      final sucursales = await ref.read(schedulingRepositoryProvider).listarSucursales();
-      state = state.copyWith(empleados: empleados, sucursales: sucursales, isLoading: false);
+      final sucursales = await ref
+          .read(schedulingRepositoryProvider)
+          .listarSucursales();
+      state = state.copyWith(
+        empleados: empleados,
+        sucursales: sucursales,
+        isLoading: false,
+      );
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
@@ -66,7 +73,12 @@ class EmployeesController extends Notifier<EmployeesState> {
   }) async {
     await ref
         .read(empleadoRepositoryProvider)
-        .crear(email: email, password: password, nombre: nombre, sucursalId: sucursalId);
+        .crear(
+          email: email,
+          password: password,
+          nombre: nombre,
+          sucursalId: sucursalId,
+        );
     await cargar();
   }
 }

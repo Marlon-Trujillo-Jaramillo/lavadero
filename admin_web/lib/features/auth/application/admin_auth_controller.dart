@@ -25,8 +25,8 @@ class AdminAuthAuthenticated extends AdminAuthState {
 
 final adminAuthControllerProvider =
     NotifierProvider<AdminAuthController, AdminAuthState>(
-  AdminAuthController.new,
-);
+      AdminAuthController.new,
+    );
 
 class AdminAuthController extends Notifier<AdminAuthState> {
   @override
@@ -47,11 +47,9 @@ class AdminAuthController extends Notifier<AdminAuthState> {
     required String email,
     required String password,
   }) async {
-    final auth = await ref.read(authRepositoryProvider).login(
-          tenantSlug: tenantSlug,
-          email: email,
-          password: password,
-        );
+    final auth = await ref
+        .read(authRepositoryProvider)
+        .login(tenantSlug: tenantSlug, email: email, password: password);
     state = AdminAuthAuthenticated(auth.user);
   }
 
