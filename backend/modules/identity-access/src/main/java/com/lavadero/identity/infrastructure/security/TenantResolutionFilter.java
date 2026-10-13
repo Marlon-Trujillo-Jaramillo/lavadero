@@ -1,5 +1,6 @@
 package com.lavadero.identity.infrastructure.security;
 
+import com.lavadero.shared.security.PrincipalAutenticado;
 import com.lavadero.shared.security.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -33,7 +34,7 @@ public class TenantResolutionFilter extends OncePerRequestFilter {
     try {
       Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
       if (authentication != null
-          && authentication.getPrincipal() instanceof JwtAuthenticatedPrincipal principal
+          && authentication.getPrincipal() instanceof PrincipalAutenticado principal
           && principal.tenantId() != null) {
         TenantContext.set(principal.tenantId());
       }

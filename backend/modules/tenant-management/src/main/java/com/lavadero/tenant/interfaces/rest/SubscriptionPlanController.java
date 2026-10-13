@@ -24,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Gestión del catálogo de planes de suscripción de la plataforma. Dato de plataforma (no de un
- * tenant), restringido a SUPER_ADMIN — mismo criterio que {@code TenantController#crear}.
+ * tenant): escribir es solo SUPER_ADMIN — mismo criterio que {@code TenantController#crear} —,
+ * leerlo también lo puede hacer el dueño del lavadero para elegir qué plan pagar.
  */
 @RestController
 public class SubscriptionPlanController {
@@ -48,6 +49,17 @@ public class SubscriptionPlanController {
     return listarSubscriptionPlanesUseCase.execute(null).stream()
         .map(SubscriptionPlanResponse::from)
         .toList();
+  }
+
+  /**
+   * Planes que un lavadero puede contratar (pantalla "Suscripción" del panel). Solo lectura: el
+   * catálogo de planes es dato de plataforma sin {@code tenant_id}, así que exponerlo al dueño no
+   * filtra nada de otro tenant. Crear/editar planes sigue siendo exclusivo de SUPER_ADMIN.
+   */
+  @GetMapping("/api/v1/planes")
+  @PreAuthorize("hasAnyRole('ADMIN_TENANT','SUPER_ADMIN')")
+  public List<SubscriptionPlanResponse> listarDisponibles() {
+    return listar();
   }
 
   @PostMapping("/api/v1/plataforma/planes")

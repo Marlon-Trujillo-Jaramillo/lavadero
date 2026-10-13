@@ -11,7 +11,11 @@ import java.util.UUID;
  * `tenant_id` en `refresh_token` (ver V7__refresh_token_tenant_id.sql, identity-access).
  *
  * <p>Separador {@code _} deliberado: un UUID solo usa hex y guiones, así que partir por guion bajo
- * es inequívoco.
+ * es inequívoco. Además Wompi solo acepta alfanuméricos, {@code -} y {@code _} en la referencia
+ * (por eso no se usa el {@code .} de {@code RefreshTokenFormato}).
+ *
+ * <p>El prefijo NO es autorización: solo dice en qué tenant buscar. Un prefijo manipulado hace que
+ * RLS no encuentre nada, y el evento ya llegó con firma válida de la pasarela.
  */
 public final class PagoReferencia {
 
@@ -20,7 +24,11 @@ public final class PagoReferencia {
   private PagoReferencia() {}
 
   public static String generar(UUID tenantId) {
-    return PREFIJO + "_" + tenantId + "_" + UUID.randomUUID().toString().substring(0, 8);
+    return PREFIJO
+        + "_"
+        + tenantId
+        + "_"
+        + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
   }
 
   public static Optional<UUID> extraerTenantId(String referencia) {

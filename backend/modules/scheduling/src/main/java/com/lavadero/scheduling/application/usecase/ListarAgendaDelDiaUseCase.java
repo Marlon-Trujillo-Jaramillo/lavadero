@@ -21,6 +21,7 @@ public class ListarAgendaDelDiaUseCase implements UseCase<AgendaDiaQuery, List<R
   @Override
   @Transactional(readOnly = true)
   public List<ReservaDto> execute(AgendaDiaQuery input) {
+    input.alcance().verificar(input.sucursalId());
     return reservaRepository
         .findPorSucursalYRango(input.sucursalId(), input.desde(), input.hasta())
         .stream()

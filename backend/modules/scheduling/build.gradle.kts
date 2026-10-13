@@ -2,11 +2,11 @@
  * Bounded context: agenda/reservas (com.lavadero.scheduling). A diferencia
  * de `catalog` (deliberadamente sin dependencias de negocio), este módulo
  * SÍ necesita conocer Sucursal (capacidad simultánea, tenant-management) y
- * Servicio (precio/duración a congelar en la reserva, catalog), y depende
- * de identity-access para leer el usuario autenticado actual
- * (JwtAuthenticatedPrincipal) en la capa `interfaces` — mismo patrón de
- * dependencia "hacia arriba" que ya usa identity-access con
- * tenant-management. Ninguno de esos tres módulos depende de este.
+ * Servicio (precio/duración a congelar en la reserva, catalog). El usuario
+ * autenticado (PrincipalAutenticado) viene de shared-kernel, así que NO
+ * depende de identity-access en producción: solo lo trae en tests, por sus
+ * migraciones (reserva/incidencia tienen FK a usuario). Ninguno de esos
+ * módulos depende de este.
  */
 
 plugins {
@@ -18,7 +18,6 @@ dependencies {
     implementation(project(":contracts"))
     implementation(project(":modules:tenant-management"))
     implementation(project(":modules:catalog"))
-    implementation(project(":modules:identity-access"))
 
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -28,6 +27,7 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly(project(":modules:identity-access"))
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
 }

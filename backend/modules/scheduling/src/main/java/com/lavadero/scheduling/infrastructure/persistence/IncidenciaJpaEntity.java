@@ -8,7 +8,9 @@ import java.time.Instant;
 import java.util.UUID;
 import org.hibernate.annotations.Filter;
 
-/** El {@code @FilterDef} vive una sola vez en {@code SucursalJpaEntity}; aquí solo se referencia. */
+/**
+ * El {@code @FilterDef} vive una sola vez en {@code SucursalJpaEntity}; aquí solo se referencia.
+ */
 @Entity
 @Table(name = "incidencia")
 @Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")

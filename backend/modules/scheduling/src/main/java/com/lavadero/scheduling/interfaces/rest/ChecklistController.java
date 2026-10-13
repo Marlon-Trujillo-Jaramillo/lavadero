@@ -1,14 +1,18 @@
 package com.lavadero.scheduling.interfaces.rest;
 
 import com.lavadero.scheduling.application.command.MarcarChecklistItemCommand;
+import com.lavadero.scheduling.application.command.ReservaStaffCommand;
 import com.lavadero.scheduling.application.usecase.MarcarChecklistItemUseCase;
 import com.lavadero.scheduling.application.usecase.ObtenerChecklistUseCase;
 import com.lavadero.scheduling.domain.model.ChecklistItemTipo;
 import com.lavadero.scheduling.interfaces.rest.dto.ChecklistItemResponse;
 import com.lavadero.scheduling.interfaces.rest.dto.MarcarChecklistItemRequest;
+import com.lavadero.shared.security.AlcanceSucursal;
+import com.lavadero.shared.security.PrincipalAutenticado;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,8 +35,13 @@ public class ChecklistController {
 
   @GetMapping("/api/v1/agenda/reservas/{id}/checklist")
   @PreAuthorize("hasAnyRole('EMPLEADO','ADMIN_SUCURSAL','ADMIN_TENANT')")
-  public List<ChecklistItemResponse> obtener(@PathVariable UUID id) {
-    return obtenerChecklistUseCase.execute(id).stream().map(ChecklistItemResponse::from).toList();
+  public List<ChecklistItemResponse> obtener(
+      @PathVariable UUID id, @AuthenticationPrincipal PrincipalAutenticado principal) {
+    return obtenerChecklistUseCase
+        .execute(new ReservaStaffCommand(id, AlcanceSucursal.de(principal)))
+        .stream()
+        .map(ChecklistItemResponse::from)
+        .toList();
   }
 
   @PatchMapping("/api/v1/agenda/reservas/{id}/checklist/{tipo}")
@@ -40,9 +49,12 @@ public class ChecklistController {
   public List<ChecklistItemResponse> marcar(
       @PathVariable UUID id,
       @PathVariable ChecklistItemTipo tipo,
-      @RequestBody MarcarChecklistItemRequest request) {
+      @RequestBody MarcarChecklistItemRequest request,
+      @AuthenticationPrincipal PrincipalAutenticado principal) {
     return marcarChecklistItemUseCase
-        .execute(new MarcarChecklistItemCommand(id, tipo, request.completado()))
+        .execute(
+            new MarcarChecklistItemCommand(
+                id, tipo, request.completado(), AlcanceSucursal.de(principal)))
         .stream()
         .map(ChecklistItemResponse::from)
         .toList();
