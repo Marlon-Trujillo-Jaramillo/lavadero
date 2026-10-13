@@ -10,6 +10,7 @@ enum IncidenciaCategoria {
   final String wireValue;
   final String label;
 
-  static IncidenciaCategoria fromWireValue(String value) =>
-      IncidenciaCategoria.values.firstWhere((categoria) => categoria.wireValue == value);
+  static IncidenciaCategoria fromWireValue(String value) => IncidenciaCategoria
+      .values
+      .firstWhere((categoria) => categoria.wireValue == value);
 }

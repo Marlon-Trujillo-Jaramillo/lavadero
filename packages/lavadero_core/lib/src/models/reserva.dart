@@ -17,17 +17,17 @@ class Reserva {
   });
 
   factory Reserva.fromJson(Map<String, dynamic> json) => Reserva(
-        id: json['id'] as String,
-        sucursalId: json['sucursalId'] as String,
-        servicioId: json['servicioId'] as String,
-        clienteId: json['clienteId'] as String,
-        fechaHoraInicio: DateTime.parse(json['fechaHoraInicio'] as String),
-        fechaHoraFin: DateTime.parse(json['fechaHoraFin'] as String),
-        duracionEstimadaMinutos: json['duracionEstimadaMinutos'] as int,
-        precio: (json['precio'] as num).toDouble(),
-        moneda: json['moneda'] as String,
-        estado: ReservaEstado.fromWireValue(json['estado'] as String),
-      );
+    id: json['id'] as String,
+    sucursalId: json['sucursalId'] as String,
+    servicioId: json['servicioId'] as String,
+    clienteId: json['clienteId'] as String,
+    fechaHoraInicio: DateTime.parse(json['fechaHoraInicio'] as String),
+    fechaHoraFin: DateTime.parse(json['fechaHoraFin'] as String),
+    duracionEstimadaMinutos: json['duracionEstimadaMinutos'] as int,
+    precio: (json['precio'] as num).toDouble(),
+    moneda: json['moneda'] as String,
+    estado: ReservaEstado.fromWireValue(json['estado'] as String),
+  );
 
   final String id;
   final String sucursalId;
@@ -57,18 +57,19 @@ class Reserva {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        sucursalId,
-        servicioId,
-        clienteId,
-        fechaHoraInicio,
-        fechaHoraFin,
-        duracionEstimadaMinutos,
-        precio,
-        moneda,
-        estado,
-      );
+    id,
+    sucursalId,
+    servicioId,
+    clienteId,
+    fechaHoraInicio,
+    fechaHoraFin,
+    duracionEstimadaMinutos,
+    precio,
+    moneda,
+    estado,
+  );
 
   @override
-  String toString() => 'Reserva(id: $id, fechaHoraInicio: $fechaHoraInicio, estado: $estado)';
+  String toString() =>
+      'Reserva(id: $id, fechaHoraInicio: $fechaHoraInicio, estado: $estado)';
 }

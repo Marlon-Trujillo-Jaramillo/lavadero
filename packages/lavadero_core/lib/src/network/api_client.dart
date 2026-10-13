@@ -23,26 +23,24 @@ class ApiClient {
     String? Function()? tenantSlugProvider,
     void Function()? onSessionExpired,
     List<Interceptor> extraInterceptors = const [],
-  })  : dio = Dio(
-          BaseOptions(
-            baseUrl: _withApiPrefix(baseUrl),
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 15),
-            contentType: 'application/json',
-          ),
-        ),
-        _refreshDio = Dio(
-          BaseOptions(
-            baseUrl: _withApiPrefix(baseUrl),
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 15),
-            contentType: 'application/json',
-          ),
-        ) {
+  }) : dio = Dio(
+         BaseOptions(
+           baseUrl: _withApiPrefix(baseUrl),
+           connectTimeout: const Duration(seconds: 15),
+           receiveTimeout: const Duration(seconds: 15),
+           contentType: 'application/json',
+         ),
+       ),
+       _refreshDio = Dio(
+         BaseOptions(
+           baseUrl: _withApiPrefix(baseUrl),
+           connectTimeout: const Duration(seconds: 15),
+           receiveTimeout: const Duration(seconds: 15),
+           contentType: 'application/json',
+         ),
+       ) {
     dio.interceptors.addAll([
-      TenantInterceptor(
-        tenantSlugProvider: tenantSlugProvider ?? () => null,
-      ),
+      TenantInterceptor(tenantSlugProvider: tenantSlugProvider ?? () => null),
       AuthInterceptor(tokenStorage: tokenStorage),
       RefreshInterceptor(
         retryDio: dio,
