@@ -33,10 +33,10 @@ class TenantSelectionState {
   }
 }
 
-final tenantSelectionControllerProvider = NotifierProvider<
-    TenantSelectionController, TenantSelectionState>(
-  TenantSelectionController.new,
-);
+final tenantSelectionControllerProvider =
+    NotifierProvider<TenantSelectionController, TenantSelectionState>(
+      TenantSelectionController.new,
+    );
 
 class TenantSelectionController extends Notifier<TenantSelectionState> {
   @override
@@ -49,10 +49,15 @@ class TenantSelectionController extends Notifier<TenantSelectionState> {
       return;
     }
     try {
-      final results =
-          await ref.read(tenantRepositoryProvider).search(query.trim());
+      final results = await ref
+          .read(tenantRepositoryProvider)
+          .search(query.trim());
+      // Respuesta de una búsqueda ya superada (el usuario siguió tecleando):
+      // se descarta para que no pise los resultados de la consulta actual.
+      if (state.query != query) return;
       state = state.copyWith(results: results, isLoading: false);
     } on ApiException catch (e) {
+      if (state.query != query) return;
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
   }
@@ -61,5 +66,6 @@ class TenantSelectionController extends Notifier<TenantSelectionState> {
   /// en la siguiente llamada de login/registro.
   void select(TenantSummary tenant) {
     ref.read(selectedTenantSlugProvider.notifier).state = tenant.slug;
+    ref.read(selectedTenantNameProvider.notifier).state = tenant.nombre;
   }
 }

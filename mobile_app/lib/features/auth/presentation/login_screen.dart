@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lavadero_core/lavadero_core.dart';
 
 import '../../../app/di/providers.dart';
+import '../../../app/router/app_routes.dart';
 import '../application/auth_controller.dart';
+import 'widgets/auth_widgets.dart';
+import 'widgets/password_field.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -28,13 +31,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit(String tenantSlug) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || !_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
     try {
-      await ref.read(authControllerProvider.notifier).login(
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(
             tenantSlug: tenantSlug,
             email: _emailController.text.trim(),
             password: _passwordController.text,
@@ -42,9 +48,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // La navegación post-login la resuelve el redirect guard del router
       // en función del nuevo AuthState (ver app/router/app_router.dart).
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      if (mounted) setState(() => _errorMessage = e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _volver() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.tenantSelection);
     }
   }
 
@@ -55,79 +69,74 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (tenantSlug == null) {
       // No debería ocurrir vía navegación normal (el redirect guard obliga
       // a pasar primero por tenant_selection), pero se cubre por robustez.
-      return Scaffold(
-        appBar: AppBar(title: const Text('Iniciar sesión')),
-        body: Center(
-          child: FilledButton(
-            onPressed: () => context.go('/tenant-selection'),
-            child: const Text('Elegir lavadero'),
-          ),
+      return AuthLayout(
+        title: 'Elige tu lavadero',
+        subtitle: 'Antes de ingresar, dinos en qué lavadero tienes tu cuenta.',
+        child: FilledButton.icon(
+          onPressed: () => context.go(AppRoutes.tenantSelection),
+          icon: const Icon(Icons.search_rounded),
+          label: const Text('Buscar lavadero'),
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(LavaderoSpacing.lg),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Icon(
-                    Icons.local_car_wash_outlined,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: LavaderoSpacing.sm),
-                  Text(
-                    tenantSlug,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: LavaderoSpacing.lg),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: (value) =>
-                        (value == null || !value.contains('@'))
-                            ? 'Ingresa un email válido'
-                            : null,
-                  ),
-                  const SizedBox(height: LavaderoSpacing.sm),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Contraseña'),
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'Ingresa tu contraseña'
-                        : null,
-                  ),
-                  const SizedBox(height: LavaderoSpacing.md),
-                  if (_errorMessage != null) ...[
-                    ErrorBanner(
-                      message: _errorMessage!,
-                      onDismiss: () => setState(() => _errorMessage = null),
-                    ),
-                    const SizedBox(height: LavaderoSpacing.sm),
-                  ],
-                  LoadingButton(
-                    isLoading: _isLoading,
-                    onPressed: () => _submit(tenantSlug),
-                    child: const Text('Ingresar'),
-                  ),
-                  TextButton(
-                    onPressed: () => context.push('/register'),
-                    child: const Text('¿No tienes cuenta? Regístrate'),
-                  ),
-                ],
+    return AuthLayout(
+      leading: AuthBackButton(onPressed: _volver),
+      title: 'Bienvenido de nuevo',
+      subtitle: 'Ingresa para reservar y seguir tus lavados.',
+      brandHeadline: 'Tu auto,\nimpecable.',
+      brandMessage:
+          'Reserva tu lavado en segundos y sigue cada paso desde el celular.',
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SelectedTenantCard(),
+              const SizedBox(height: LavaderoSpacing.lg),
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.alternate_email_rounded),
+                ),
+                validator: (value) => (value == null || !value.contains('@'))
+                    ? 'Ingresa un email válido'
+                    : null,
               ),
-            ),
+              const SizedBox(height: LavaderoSpacing.md),
+              PasswordField(
+                controller: _passwordController,
+                onSubmitted: () => _submit(tenantSlug),
+                validator: (value) => (value == null || value.isEmpty)
+                    ? 'Ingresa tu contraseña'
+                    : null,
+              ),
+              const SizedBox(height: LavaderoSpacing.lg),
+              if (_errorMessage != null) ...[
+                ErrorBanner(
+                  message: _errorMessage!,
+                  onDismiss: () => setState(() => _errorMessage = null),
+                ),
+                const SizedBox(height: LavaderoSpacing.md),
+              ],
+              LoadingButton(
+                isLoading: _isLoading,
+                icon: Icons.login_rounded,
+                onPressed: () => _submit(tenantSlug),
+                child: const Text('Ingresar'),
+              ),
+              const SizedBox(height: LavaderoSpacing.sm),
+              AuthSwitchLink(
+                question: '¿No tienes cuenta?',
+                action: 'Regístrate',
+                onPressed: () => context.push(AppRoutes.register),
+              ),
+            ],
           ),
         ),
       ),

@@ -37,7 +37,9 @@ class MyReservationsState {
       reservas: reservas ?? this.reservas,
       servicios: servicios ?? this.servicios,
       isLoading: isLoading ?? this.isLoading,
-      cancelandoId: clearCancelandoId ? null : (cancelandoId ?? this.cancelandoId),
+      cancelandoId: clearCancelandoId
+          ? null
+          : (cancelandoId ?? this.cancelandoId),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -45,8 +47,8 @@ class MyReservationsState {
 
 final myReservationsControllerProvider =
     NotifierProvider<MyReservationsController, MyReservationsState>(
-  MyReservationsController.new,
-);
+      MyReservationsController.new,
+    );
 
 class MyReservationsController extends Notifier<MyReservationsState> {
   @override
@@ -58,7 +60,9 @@ class MyReservationsController extends Notifier<MyReservationsState> {
   Future<void> cargar() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final reservas = await ref.read(schedulingRepositoryProvider).misReservas();
+      final reservas = await ref
+          .read(schedulingRepositoryProvider)
+          .misReservas();
       // `listar()` (no `listarActivos()`) para poder mostrar el nombre de
       // servicios ya desactivados en reservas pasadas.
       final servicios = await ref.read(catalogRepositoryProvider).listar();
@@ -80,6 +84,9 @@ class MyReservationsController extends Notifier<MyReservationsState> {
     try {
       await ref.read(schedulingRepositoryProvider).cancelar(reservaId);
       await cargar();
+      // Antes quedaba seteado tras el éxito: la tarjeta seguía marcada como
+      // "cancelando" hasta la siguiente cancelación.
+      state = state.copyWith(clearCancelandoId: true);
     } on ApiException catch (e) {
       state = state.copyWith(clearCancelandoId: true, errorMessage: e.message);
     }

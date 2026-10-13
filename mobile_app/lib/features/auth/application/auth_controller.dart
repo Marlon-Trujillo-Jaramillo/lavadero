@@ -24,8 +24,9 @@ class AuthAuthenticated extends AuthState {
   final UserProfile user;
 }
 
-final authControllerProvider =
-    NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);
 
 class AuthController extends Notifier<AuthState> {
   @override
@@ -39,7 +40,9 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> _restoreSession() async {
     final user = await ref.read(authRepositoryProvider).restoreSession();
-    state = user != null ? AuthAuthenticated(user) : const AuthUnauthenticated();
+    state = user != null
+        ? AuthAuthenticated(user)
+        : const AuthUnauthenticated();
   }
 
   Future<void> login({
@@ -47,11 +50,9 @@ class AuthController extends Notifier<AuthState> {
     required String email,
     required String password,
   }) async {
-    final auth = await ref.read(authRepositoryProvider).login(
-          tenantSlug: tenantSlug,
-          email: email,
-          password: password,
-        );
+    final auth = await ref
+        .read(authRepositoryProvider)
+        .login(tenantSlug: tenantSlug, email: email, password: password);
     state = AuthAuthenticated(auth.user);
   }
 
@@ -61,7 +62,9 @@ class AuthController extends Notifier<AuthState> {
     required String password,
     required String nombre,
   }) async {
-    final auth = await ref.read(authRepositoryProvider).register(
+    final auth = await ref
+        .read(authRepositoryProvider)
+        .register(
           tenantSlug: tenantSlug,
           email: email,
           password: password,
