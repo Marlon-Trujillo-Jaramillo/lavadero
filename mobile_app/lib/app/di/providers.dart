@@ -6,15 +6,12 @@ import 'environment.dart';
 
 /// Composición de dependencias de la app, vía Riverpod.
 ///
-/// Decisión de diseño (DI + estado): se eligió Riverpod sobre
-/// get_it+injectable porque (a) es el estándar moderno de facto en Flutter
-/// para DI+estado combinados, con soporte oficial de primera clase; (b) los
-/// providers son testeables por construcción (se pueden sobreescribir en
-/// `ProviderScope(overrides: [...])` sin service locator global ni
-/// generación de código obligatoria); (c) evita el acoplamiento a
-/// `build_runner` que exige `injectable` solo para el registro de
-/// dependencias (aquí `build_runner` solo se necesita, si acaso, en
-/// `lavadero_core` para freezed/json_serializable).
+/// Decisión de diseño (DI + estado): Riverpod puro (`Notifier`/`Provider`
+/// escritos a mano) en vez de un service locator global: es el estándar de
+/// facto en Flutter para DI+estado combinados y los providers se sustituyen
+/// en tests con `ProviderScope(overrides: [...])`. El proyecto NO usa
+/// generación de código (ni `@riverpod`, ni Freezed/json_serializable, ni
+/// `build_runner`): modelos y providers se escriben a mano.
 ///
 /// `environmentProvider` se sobreescribe en `bootstrap()` con el
 /// [AppEnvironment] del `main_*.dart` que arrancó la app (dev/staging/prod).
@@ -32,6 +29,11 @@ final tokenStorageProvider = Provider<TokenStorage>((ref) => TokenStorage());
 /// (no persiste tras cerrar la app: el usuario vuelve a elegir tenant, salvo
 /// que ya tenga sesión activa restaurada).
 final selectedTenantSlugProvider = StateProvider<String?>((ref) => null);
+
+/// Nombre visible del tenant elegido (para mostrar "Entrando a {lavadero}"
+/// en login/registro y la marca en el inicio). Solo presentación: el header
+/// sigue usando [selectedTenantSlugProvider].
+final selectedTenantNameProvider = StateProvider<String?>((ref) => null);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final environment = ref.watch(environmentProvider);

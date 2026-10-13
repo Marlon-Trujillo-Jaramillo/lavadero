@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lavadero_core/lavadero_core.dart';
 
 import '../../core/role_router.dart';
 import '../../features/auth/application/auth_controller.dart';
@@ -23,12 +24,16 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: AppRoutes.tenantSelection,
+    // Se arranca en `/home`: mientras la sesión se restaura, `_HomeGate`
+    // muestra el splash de marca (antes se veía un destello de la búsqueda
+    // de lavaderos aunque hubiera sesión guardada).
+    initialLocation: AppRoutes.home,
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final authState = ref.read(authControllerProvider);
       final location = state.matchedLocation;
-      final isPublicRoute = location == AppRoutes.tenantSelection ||
+      final isPublicRoute =
+          location == AppRoutes.tenantSelection ||
           location == AppRoutes.login ||
           location == AppRoutes.register;
 
@@ -59,16 +64,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) {
-          final authState = ref.read(authControllerProvider);
-          if (authState is! AuthAuthenticated) {
-            // El redirect guard ya evita llegar aquí sin sesión; este caso
-            // solo cubre el frame intermedio de una transición de estado.
-            return const SizedBox.shrink();
-          }
-          return RoleRouter(user: authState.user);
-        },
+        builder: (context, state) => const _HomeGate(),
       ),
     ],
   );
 });
+
+/// Observa (no solo lee) el estado de sesión. Antes el builder de `/home`
+/// hacía `ref.read` y devolvía un `SizedBox` vacío si la sesión aún era
+/// desconocida; como la ruta no cambiaba, go_router no lo reconstruía y la
+/// pantalla quedaba en blanco. Mismo arreglo que `admin_web`.
+class _HomeGate extends ConsumerWidget {
+  const _HomeGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authControllerProvider);
+    if (authState is AuthAuthenticated) {
+      return RoleRouter(user: authState.user);
+    }
+    return const LavaderoSplash();
+  }
+}
