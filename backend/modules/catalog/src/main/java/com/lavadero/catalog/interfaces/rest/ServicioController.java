@@ -49,7 +49,11 @@ public class ServicioController {
     this.cambiarEstadoServicioUseCase = cambiarEstadoServicioUseCase;
   }
 
-  /** Administración: todos los servicios del tenant actual, activos e inactivos. */
+  /**
+   * Administración: todos los servicios del tenant actual, activos e inactivos. El catálogo y los
+   * precios son de todo el tenant (no por sucursal), así que ADMIN_SUCURSAL puede leerlo pero solo
+   * ADMIN_TENANT lo modifica.
+   */
   @GetMapping("/api/v1/catalogo/servicios")
   @PreAuthorize("hasAnyRole('ADMIN_TENANT','ADMIN_SUCURSAL')")
   public List<ServicioResponse> listarTodos() {
@@ -65,7 +69,7 @@ public class ServicioController {
   }
 
   @PostMapping("/api/v1/catalogo/servicios")
-  @PreAuthorize("hasAnyRole('ADMIN_TENANT','ADMIN_SUCURSAL')")
+  @PreAuthorize("hasRole('ADMIN_TENANT')")
   public ResponseEntity<ServicioResponse> crear(@Valid @RequestBody CrearServicioRequest request) {
     ServicioDto creado =
         crearServicioUseCase.execute(
@@ -79,7 +83,7 @@ public class ServicioController {
   }
 
   @PutMapping("/api/v1/catalogo/servicios/{id}")
-  @PreAuthorize("hasAnyRole('ADMIN_TENANT','ADMIN_SUCURSAL')")
+  @PreAuthorize("hasRole('ADMIN_TENANT')")
   public ServicioResponse actualizar(
       @PathVariable UUID id, @Valid @RequestBody ActualizarServicioRequest request) {
     ServicioDto actualizado =
@@ -94,7 +98,7 @@ public class ServicioController {
   }
 
   @PatchMapping("/api/v1/catalogo/servicios/{id}/estado")
-  @PreAuthorize("hasAnyRole('ADMIN_TENANT','ADMIN_SUCURSAL')")
+  @PreAuthorize("hasRole('ADMIN_TENANT')")
   public ServicioResponse cambiarEstado(
       @PathVariable UUID id, @RequestBody CambiarEstadoServicioRequest request) {
     ServicioDto actualizado =

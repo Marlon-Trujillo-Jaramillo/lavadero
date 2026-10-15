@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lavadero_core/lavadero_core.dart';
 
 import '../../features/auth/application/admin_auth_controller.dart';
 import '../../features/auth/presentation/admin_login_screen.dart';
@@ -44,14 +45,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) {
-          final authState = ref.read(adminAuthControllerProvider);
-          if (authState is! AdminAuthAuthenticated) {
-            return const SizedBox.shrink();
-          }
-          return AdminShell(user: authState.user);
-        },
+        builder: (context, state) => const _HomeGate(),
       ),
     ],
   );
 });
+
+/// Observa (no solo lee) el estado de sesión: al recargar la página en
+/// `/home` la sesión arranca "desconocida" mientras se restaura. Antes el
+/// builder hacía `ref.read` y devolvía un `SizedBox` vacío; como la ruta no
+/// cambia, go_router no la reconstruía y la pantalla quedaba en blanco.
+class _HomeGate extends ConsumerWidget {
+  const _HomeGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(adminAuthControllerProvider);
+    if (authState is AdminAuthAuthenticated) {
+      return AdminShell(user: authState.user);
+    }
+    return const LavaderoSplash();
+  }
+}

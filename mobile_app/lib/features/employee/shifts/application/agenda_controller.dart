@@ -6,13 +6,22 @@ import '../../../auth/application/auth_controller.dart';
 
 /// Agenda del día de la sucursal del empleado actual (`user.sucursalId`).
 class AgendaState {
-  const AgendaState({this.reservas = const [], this.isLoading = false, this.errorMessage});
+  const AgendaState({
+    this.reservas = const [],
+    this.isLoading = false,
+    this.errorMessage,
+  });
 
   final List<Reserva> reservas;
   final bool isLoading;
   final String? errorMessage;
 
-  AgendaState copyWith({List<Reserva>? reservas, bool? isLoading, String? errorMessage, bool clearError = false}) {
+  AgendaState copyWith({
+    List<Reserva>? reservas,
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
     return AgendaState(
       reservas: reservas ?? this.reservas,
       isLoading: isLoading ?? this.isLoading,
@@ -21,7 +30,8 @@ class AgendaState {
   }
 }
 
-final agendaControllerProvider = NotifierProvider<AgendaController, AgendaState>(AgendaController.new);
+final agendaControllerProvider =
+    NotifierProvider<AgendaController, AgendaState>(AgendaController.new);
 
 class AgendaController extends Notifier<AgendaState> {
   @override
@@ -41,7 +51,9 @@ class AgendaController extends Notifier<AgendaState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final reservas = await ref.read(schedulingRepositoryProvider).agendaDelDia(
+      final reservas = await ref
+          .read(schedulingRepositoryProvider)
+          .agendaDelDia(
             sucursalId: authState.user.sucursalId!,
             fecha: DateTime.now(),
           );

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lavadero_core/lavadero_core.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../features/auth/application/admin_auth_controller.dart';
 import 'environment.dart';
@@ -55,4 +56,17 @@ final schedulingRepositoryProvider = Provider<SchedulingRepository>((ref) {
 
 final tenantRepositoryProvider = Provider<TenantRepository>((ref) {
   return TenantRepository(dio: ref.watch(apiClientProvider).dio);
+});
+
+final pagoRepositoryProvider = Provider<PagoRepository>((ref) {
+  return PagoRepository(dio: ref.watch(apiClientProvider).dio);
+});
+
+/// Abre una URL externa (hoy: el Web Checkout de Wompi) en una pestaña nueva. Devuelve `false`
+/// si el navegador no la pudo abrir (p. ej. bloqueador de ventanas emergentes). Es un provider
+/// para poder sustituirlo en tests sin depender del plugin.
+typedef AbrirUrlExterna = Future<bool> Function(Uri uri);
+
+final abrirUrlExternaProvider = Provider<AbrirUrlExterna>((ref) {
+  return (uri) => launchUrl(uri, webOnlyWindowName: '_blank');
 });

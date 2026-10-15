@@ -4,9 +4,11 @@ import com.lavadero.shared.domain.Money;
 import com.lavadero.tenant.domain.model.Pago;
 import com.lavadero.tenant.domain.model.PagoEstado;
 import com.lavadero.tenant.domain.repository.PagoRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,10 +35,19 @@ class PagoRepositoryAdapter implements PagoRepository {
 
   @Override
   @Transactional(readOnly = true)
-  public List<Pago> findAllDelTenantActual() {
-    return jpaRepository.findAllByOrderByCreadoEnDesc().stream()
+  public List<Pago> findRecientesDelTenantActual(int limite) {
+    return jpaRepository.findAllByOrderByCreadoEnDesc(PageRequest.of(0, limite)).stream()
         .map(PagoRepositoryAdapter::toDomain)
         .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Optional<Pago> findPendienteDelPlanDesde(UUID subscriptionPlanId, Instant desde) {
+    return jpaRepository
+        .findFirstBySubscriptionPlanIdAndEstadoAndCreadoEnGreaterThanEqualOrderByCreadoEnDesc(
+            subscriptionPlanId, PagoEstado.PENDIENTE.name(), desde)
+        .map(PagoRepositoryAdapter::toDomain);
   }
 
   @Override

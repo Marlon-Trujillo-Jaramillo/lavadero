@@ -8,7 +8,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Incidencias reportadas por el usuario actual — mismo patrón que {@code ListarMisReservasUseCase}. */
+/**
+ * Incidencias reportadas por el usuario actual — mismo patrón que {@code ListarMisReservasUseCase}.
+ */
 @Service
 public class ListarMisIncidenciasUseCase implements UseCase<UUID, List<IncidenciaDto>> {
 

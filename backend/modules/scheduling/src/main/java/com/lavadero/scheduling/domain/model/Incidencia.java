@@ -7,9 +7,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Un problema reportado por un empleado durante o después de un servicio (daño al vehículo,
- * cliente ausente, insumo faltante, otro). {@code reservaId} es opcional: un insumo faltante no
- * está atado a una reserva concreta — ver docs/specs/006-checklist-incidencias.md.
+ * Un problema reportado por un empleado durante o después de un servicio (daño al vehículo, cliente
+ * ausente, insumo faltante, otro). {@code reservaId} es opcional: un insumo faltante no está atado
+ * a una reserva concreta — ver docs/specs/006-checklist-incidencias.md.
  */
 public class Incidencia extends AggregateRoot<UUID> {
 

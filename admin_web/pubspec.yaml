@@ -25,6 +25,9 @@ dependencies:
   # por dart-define = SDK en modo no-op, no rompe builds locales.
   sentry_flutter: ^9.24.0
 
+  # Abrir el Web Checkout de Wompi (pago de la suscripción) en otra pestaña.
+  url_launcher: ^6.3.2
+
   lavadero_core:
     path: ../packages/lavadero_core
 

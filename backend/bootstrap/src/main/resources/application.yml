@@ -17,6 +17,10 @@ spring:
 
 server:
   port: 8080
+  # Detrás de un proxy/load balancer: Tomcat (RemoteIpValve) toma la IP real de
+  # X-Forwarded-For SOLO si la conexión viene de una red interna. RateLimitFilter
+  # depende de esto para no confiar en un header que cualquier cliente puede falsear.
+  forward-headers-strategy: native
 
 management:
   endpoints:
@@ -55,3 +59,17 @@ lavadero:
       # equivalente de desarrollo local.
       allowed-origins: ${LAVADERO_CORS_ALLOWED_ORIGINS:}
       allowed-origin-patterns: ${LAVADERO_CORS_ALLOWED_ORIGIN_PATTERNS:}
+  payments:
+    wompi:
+      # Cobro de suscripciones (ver PagoController, tenant-management). Todo vacío por
+      # defecto = pagos deshabilitados y webhook rechazado (falla cerrado), mismo patrón que
+      # SENTRY_DSN. Los tres secretos están en el dashboard de Wompi ("Desarrolladores"):
+      # la llave pública (pub_test_/pub_prod_) viaja al cliente; el secreto de integridad
+      # firma el checkout y el de eventos verifica los webhooks — NUNCA versionarlos.
+      public-key: ${WOMPI_PUBLIC_KEY:}
+      integrity-secret: ${WOMPI_INTEGRITY_SECRET:}
+      events-secret: ${WOMPI_EVENTS_SECRET:}
+      checkout-url: ${WOMPI_CHECKOUT_URL:https://checkout.wompi.co/p/}
+      # A dónde vuelve el usuario tras pagar (pantalla de admin_web). Solo informativo:
+      # el estado real del pago lo fija el webhook POST /api/v1/pagos/webhook/wompi.
+      redirect-url: ${WOMPI_REDIRECT_URL:}

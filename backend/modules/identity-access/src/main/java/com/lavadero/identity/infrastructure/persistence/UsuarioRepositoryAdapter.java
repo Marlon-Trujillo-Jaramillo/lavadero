@@ -41,10 +41,12 @@ class UsuarioRepositoryAdapter implements UsuarioRepository {
 
   @Override
   @Transactional(readOnly = true)
-  public List<Usuario> findEmpleadosDelTenantActual() {
-    return jpaRepository.findByRol(Rol.EMPLEADO).stream()
-        .map(UsuarioRepositoryAdapter::toDomain)
-        .toList();
+  public List<Usuario> findEmpleadosDelTenantActual(UUID sucursalId) {
+    var filas =
+        sucursalId == null
+            ? jpaRepository.findByRol(Rol.EMPLEADO)
+            : jpaRepository.findByRolAndSucursalId(Rol.EMPLEADO, sucursalId);
+    return filas.stream().map(UsuarioRepositoryAdapter::toDomain).toList();
   }
 
   @Override

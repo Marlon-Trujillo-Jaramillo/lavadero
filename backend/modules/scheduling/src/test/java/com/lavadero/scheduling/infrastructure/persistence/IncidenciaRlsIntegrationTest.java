@@ -59,7 +59,12 @@ class IncidenciaRlsIntegrationTest {
 
     Incidencia incidenciaA =
         Incidencia.nueva(
-            tenantA, sucursalA, null, empleadoA, IncidenciaCategoria.FALTANTE_INSUMO, "Falta shampoo");
+            tenantA,
+            sucursalA,
+            null,
+            empleadoA,
+            IncidenciaCategoria.FALTANTE_INSUMO,
+            "Falta shampoo");
     Incidencia incidenciaB =
         Incidencia.nueva(
             tenantB, sucursalB, null, empleadoB, IncidenciaCategoria.FALTANTE_INSUMO, "Falta cera");

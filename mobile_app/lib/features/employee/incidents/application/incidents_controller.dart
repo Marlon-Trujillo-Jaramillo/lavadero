@@ -5,7 +5,11 @@ import '../../../../app/di/providers.dart';
 
 /// Incidencias reportadas por el empleado actual — ver docs/specs/006-checklist-incidencias.md.
 class IncidentsState {
-  const IncidentsState({this.incidencias = const [], this.isLoading = false, this.errorMessage});
+  const IncidentsState({
+    this.incidencias = const [],
+    this.isLoading = false,
+    this.errorMessage,
+  });
 
   final List<Incidencia> incidencias;
   final bool isLoading;
@@ -25,9 +29,10 @@ class IncidentsState {
   }
 }
 
-final incidentsControllerProvider = NotifierProvider<IncidentsController, IncidentsState>(
-  IncidentsController.new,
-);
+final incidentsControllerProvider =
+    NotifierProvider<IncidentsController, IncidentsState>(
+      IncidentsController.new,
+    );
 
 class IncidentsController extends Notifier<IncidentsState> {
   @override
@@ -39,7 +44,9 @@ class IncidentsController extends Notifier<IncidentsState> {
   Future<void> cargar() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final incidencias = await ref.read(schedulingRepositoryProvider).misIncidencias();
+      final incidencias = await ref
+          .read(schedulingRepositoryProvider)
+          .misIncidencias();
       state = state.copyWith(incidencias: incidencias, isLoading: false);
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -54,7 +61,9 @@ class IncidentsController extends Notifier<IncidentsState> {
     required IncidenciaCategoria categoria,
     required String descripcion,
   }) async {
-    await ref.read(schedulingRepositoryProvider).crearIncidencia(
+    await ref
+        .read(schedulingRepositoryProvider)
+        .crearIncidencia(
           sucursalId: sucursalId,
           reservaId: reservaId,
           categoria: categoria,

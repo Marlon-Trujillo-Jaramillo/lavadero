@@ -26,12 +26,15 @@ UserProfile _userWith(List<UserRole> roles) => UserProfile(
 Widget _appConNavegacion(Widget home) {
   final catalogRepository = MockCatalogRepository();
   when(() => catalogRepository.listarActivos()).thenAnswer((_) async => []);
+  when(() => catalogRepository.listar()).thenAnswer((_) async => []);
 
   final schedulingRepository = MockSchedulingRepository();
   when(() => schedulingRepository.agendaDelDia(
         sucursalId: any(named: 'sucursalId'),
         fecha: any(named: 'fecha'),
       )).thenAnswer((_) async => []);
+  // El inicio del cliente muestra la próxima reserva (de "Mis reservas").
+  when(() => schedulingRepository.misReservas()).thenAnswer((_) async => []);
 
   final authRepository = MockAuthRepository();
   when(() => authRepository.restoreSession()).thenAnswer((_) async => null);
@@ -47,12 +50,12 @@ Widget _appConNavegacion(Widget home) {
 }
 
 void main() {
-  testWidgets('shows ClienteShell (bottom nav Catálogo) for CLIENTE-only',
+  testWidgets('shows ClienteShell (bottom nav Inicio) for CLIENTE-only',
       (tester) async {
     await tester.pumpWidget(
       _appConNavegacion(RoleRouter(user: _userWith([UserRole.cliente]))),
     );
-    expect(find.text('Catálogo'), findsWidgets);
+    expect(find.text('Inicio'), findsWidgets);
     expect(find.text('Turnos'), findsNothing);
   });
 
@@ -62,7 +65,7 @@ void main() {
       _appConNavegacion(RoleRouter(user: _userWith([UserRole.empleado]))),
     );
     expect(find.text('Turnos'), findsWidgets);
-    expect(find.text('Catálogo'), findsNothing);
+    expect(find.text('Inicio'), findsNothing);
   });
 
   testWidgets(
@@ -75,7 +78,7 @@ void main() {
     );
 
     expect(find.text('¿Cómo quieres continuar?'), findsOneWidget);
-    expect(find.text('Catálogo'), findsNothing);
+    expect(find.text('Inicio'), findsNothing);
     expect(find.text('Turnos'), findsNothing);
 
     await tester.tap(find.text('Como empleado'));

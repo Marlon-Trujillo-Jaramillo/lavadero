@@ -8,8 +8,8 @@ import java.util.UUID;
 /**
  * Una tarea del checklist de servicio marcada (o desmarcada) para una {@link Reserva} concreta.
  * Puramente informativo: no bloquea ninguna transición de estado de la reserva (ver
- * docs/specs/006-checklist-incidencias.md) — evita acoplar dos conceptos que pueden evolucionar
- * por separado.
+ * docs/specs/006-checklist-incidencias.md) — evita acoplar dos conceptos que pueden evolucionar por
+ * separado.
  */
 public class ChecklistItem extends AggregateRoot<UUID> {
 

@@ -41,9 +41,8 @@ class BookingState {
   }
 }
 
-final bookingControllerProvider = NotifierProvider<BookingController, BookingState>(
-  BookingController.new,
-);
+final bookingControllerProvider =
+    NotifierProvider<BookingController, BookingState>(BookingController.new);
 
 class BookingController extends Notifier<BookingState> {
   @override
@@ -55,9 +54,17 @@ class BookingController extends Notifier<BookingState> {
   Future<void> cargarOpciones() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final servicios = await ref.read(catalogRepositoryProvider).listarActivos();
-      final sucursales = await ref.read(schedulingRepositoryProvider).listarSucursales();
-      state = state.copyWith(servicios: servicios, sucursales: sucursales, isLoading: false);
+      final servicios = await ref
+          .read(catalogRepositoryProvider)
+          .listarActivos();
+      final sucursales = await ref
+          .read(schedulingRepositoryProvider)
+          .listarSucursales();
+      state = state.copyWith(
+        servicios: servicios,
+        sucursales: sucursales,
+        isLoading: false,
+      );
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
@@ -70,7 +77,9 @@ class BookingController extends Notifier<BookingState> {
   }) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
-      final reserva = await ref.read(schedulingRepositoryProvider).crear(
+      final reserva = await ref
+          .read(schedulingRepositoryProvider)
+          .crear(
             sucursalId: sucursalId,
             servicioId: servicioId,
             fechaHoraInicio: fechaHoraInicio,
@@ -83,6 +92,23 @@ class BookingController extends Notifier<BookingState> {
 
   /// Vuelve a la pantalla de elegir servicio/horario después de confirmar una reserva.
   void reiniciar() {
-    state = BookingState(servicios: state.servicios, sucursales: state.sucursales);
+    state = BookingState(
+      servicios: state.servicios,
+      sucursales: state.sucursales,
+    );
   }
+}
+
+/// Servicio elegido para reservar. Vive fuera de la pantalla porque se puede
+/// elegir desde el inicio (tarjeta de servicio) antes de abrir "Reservar".
+final servicioElegidoProvider =
+    NotifierProvider<ServicioElegidoController, ServiceItem?>(
+      ServicioElegidoController.new,
+    );
+
+class ServicioElegidoController extends Notifier<ServiceItem?> {
+  @override
+  ServiceItem? build() => null;
+
+  void elegir(ServiceItem? servicio) => state = servicio;
 }

@@ -1,5 +1,6 @@
 package com.lavadero.identity.infrastructure.security;
 
+import com.lavadero.shared.security.PrincipalAutenticado;
 import java.util.UUID;
 import org.springframework.security.access.expression.SecurityExpressionRoot;
 import org.springframework.security.access.expression.method.MethodSecurityExpressionOperations;
@@ -28,7 +29,7 @@ public class CustomMethodSecurityExpressionRoot extends SecurityExpressionRoot
       return false;
     }
     Object principal = getAuthentication().getPrincipal();
-    if (principal instanceof JwtAuthenticatedPrincipal jwtPrincipal) {
+    if (principal instanceof PrincipalAutenticado jwtPrincipal) {
       return sucursalId.equals(jwtPrincipal.sucursalId());
     }
     return false;

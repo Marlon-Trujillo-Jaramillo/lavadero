@@ -74,6 +74,14 @@ public class Tenant extends AggregateRoot<UUID> {
     this.estado = TenantEstado.ACTIVO;
   }
 
+  /**
+   * Cambia el plan contratado. Hoy solo lo dispara un pago aprobado por la pasarela (ver {@code
+   * ProcesarEventoWompiUseCase}): el plan nunca cambia por algo que diga el cliente.
+   */
+  public void cambiarPlan(UUID nuevoSubscriptionPlanId) {
+    this.subscriptionPlanId = Objects.requireNonNull(nuevoSubscriptionPlanId);
+  }
+
   public boolean estaActivo() {
     return this.estado == TenantEstado.ACTIVO;
   }

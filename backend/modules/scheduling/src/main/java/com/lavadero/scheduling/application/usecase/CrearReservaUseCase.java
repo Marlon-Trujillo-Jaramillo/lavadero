@@ -55,6 +55,7 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
     Instant inicio = input.fechaHoraInicio();
     Instant fin = inicio.plus(Duration.ofMinutes(servicio.duracionEstimadaMinutos()));
 
+    reservaRepository.bloquearAgendaDeSucursal(input.sucursalId());
     List<Reserva> activasEnRango =
         reservaRepository.findActivasPorSucursalYRango(input.sucursalId(), inicio, fin);
     boolean hayCupo =

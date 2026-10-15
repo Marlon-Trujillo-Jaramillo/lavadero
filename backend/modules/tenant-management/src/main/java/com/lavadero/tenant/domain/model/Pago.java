@@ -46,7 +46,9 @@ public class Pago extends AggregateRoot<UUID> {
     this.creadoEn = Objects.requireNonNull(creadoEn);
   }
 
-  public static Pago nuevo(UUID tenantId, UUID subscriptionPlanId, Money monto, String referencia) {
+  /** {@code creadoEn} lo da el caso de uso (reloj inyectado), no {@code Instant.now()}. */
+  public static Pago nuevo(
+      UUID tenantId, UUID subscriptionPlanId, Money monto, String referencia, Instant creadoEn) {
     return new Pago(
         UUID.randomUUID(),
         tenantId,
@@ -55,30 +57,56 @@ public class Pago extends AggregateRoot<UUID> {
         referencia,
         PagoEstado.PENDIENTE,
         null,
-        Instant.now());
+        creadoEn);
   }
 
   /**
-   * Idempotente a propósito: Wompi puede reintentar la entrega del webhook (o el mismo evento
-   * puede llegar duplicado); aprobar dos veces el mismo pago no debe fallar ni tener efecto
-   * distinto de aprobarlo una vez.
+   * Idempotente a propósito: Wompi puede reintentar la entrega del webhook (o el mismo evento puede
+   * llegar duplicado); aprobar dos veces el mismo pago no debe fallar ni tener efecto distinto de
+   * aprobarlo una vez.
+   *
+   * <p>Un pago RECHAZADO SÍ puede aprobarse: en el Web Checkout el cliente reintenta con la misma
+   * referencia tras un rechazo (otra tarjeta, PSE, ...), y esa aprobación posterior es dinero real
+   * cobrado — ignorarla cobraría sin activar el plan.
    */
   public void aprobar(String transaccionExternaId) {
     if (estado == PagoEstado.APROBADO) {
       return;
     }
-    if (estado == PagoEstado.RECHAZADO) {
-      throw new IllegalStateException("No se puede aprobar un pago ya rechazado: " + getId());
-    }
     this.estado = PagoEstado.APROBADO;
     this.transaccionExternaId = Objects.requireNonNull(transaccionExternaId);
   }
 
+  /**
+   * Solo un pago PENDIENTE pasa a RECHAZADO. Sobre uno ya cerrado no hace nada: un rechazo nunca
+   * deshace una aprobación (puede llegar después, fuera de orden, por un intento previo).
+   */
   public void rechazar() {
-    if (estado == PagoEstado.APROBADO) {
-      throw new IllegalStateException("No se puede rechazar un pago ya aprobado: " + getId());
+    if (estado == PagoEstado.PENDIENTE) {
+      this.estado = PagoEstado.RECHAZADO;
     }
-    this.estado = PagoEstado.RECHAZADO;
+  }
+
+  public boolean estaPendiente() {
+    return estado == PagoEstado.PENDIENTE;
+  }
+
+  public boolean estaAprobado() {
+    return estado == PagoEstado.APROBADO;
+  }
+
+  /** Monto en la unidad mínima de la moneda (centavos), como lo exige la pasarela. */
+  public long montoEnCentavos() {
+    return monto.monto().movePointRight(2).longValueExact();
+  }
+
+  /**
+   * ¿El monto/moneda que reporta la pasarela es exactamente lo que se cobró? Un evento con otro
+   * monto nunca aprueba el pago (pagar $1 no puede activar un plan de $99.000).
+   */
+  public boolean coincideCon(long montoEnCentavosReportado, String monedaReportada) {
+    return montoEnCentavos() == montoEnCentavosReportado
+        && monto.moneda().getCurrencyCode().equals(monedaReportada);
   }
 
   public UUID getTenantId() {

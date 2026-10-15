@@ -1,13 +1,16 @@
 package com.lavadero.bootstrap.web;
 
 import com.lavadero.shared.application.exception.ApplicationException;
+import com.lavadero.shared.application.exception.DemasiadosIntentosException;
 import com.lavadero.shared.application.exception.ForbiddenException;
 import com.lavadero.shared.application.exception.NotFoundException;
 import com.lavadero.shared.application.exception.ValidationException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.DateTimeException;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -43,6 +46,22 @@ public class GlobalExceptionHandler {
     return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(DemasiadosIntentosException.class)
+  public ResponseEntity<ErrorResponse> handleDemasiadosIntentos(
+      DemasiadosIntentosException ex, HttpServletRequest request) {
+    return build(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
+  /**
+   * Una fecha fuera del rango representable (p. ej. {@code +999999999-12-31} en un query param)
+   * revienta al convertirla a {@code Instant}: es un error del cliente, no del servidor.
+   */
+  @ExceptionHandler(DateTimeException.class)
+  public ResponseEntity<ErrorResponse> handleFechaInvalida(
+      DateTimeException ex, HttpServletRequest request) {
+    return build(HttpStatus.BAD_REQUEST, "Fecha fuera de rango", request);
+  }
+
   @ExceptionHandler(ForbiddenException.class)
   public ResponseEntity<ErrorResponse> handleForbidden(
       ForbiddenException ex, HttpServletRequest request) {
@@ -65,6 +84,19 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ErrorResponse> handleApplication(
       ApplicationException ex, HttpServletRequest request) {
     return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
+  /**
+   * Dos altas simultáneas con el mismo valor único (email por tenant, slug) pasan ambas el {@code
+   * existsBy...} previo y la segunda choca con el índice único. Es un conflicto del cliente, no un
+   * fallo del servidor.
+   */
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ErrorResponse> handleDataIntegrity(
+      DataIntegrityViolationException ex, HttpServletRequest request) {
+    log.warn("Violación de integridad en {}: {}", request.getRequestURI(), ex.getMessage());
+    return build(
+        HttpStatus.CONFLICT, "El recurso ya existe o entra en conflicto con otro", request);
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

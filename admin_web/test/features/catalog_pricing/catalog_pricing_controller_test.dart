@@ -85,4 +85,17 @@ void main() {
     expect(state.errorMessage, 'Sin conexión');
     expect(state.isLoading, isFalse);
   });
+
+  test('cambiarEstado() deja el error en el estado en vez de lanzarlo', () async {
+    when(() => catalogRepository.cambiarEstado(id: any(named: 'id'), activo: any(named: 'activo')))
+        .thenThrow(const ApiException(message: 'No permitido'));
+
+    await container
+        .read(catalogPricingControllerProvider.notifier)
+        .cambiarEstado(id: 's1', activo: false);
+
+    final state = container.read(catalogPricingControllerProvider);
+    expect(state.errorMessage, 'No permitido');
+    expect(state.cambiandoEstadoId, isNull);
+  });
 }

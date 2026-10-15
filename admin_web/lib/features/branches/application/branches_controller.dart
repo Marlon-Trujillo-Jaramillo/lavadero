@@ -6,7 +6,11 @@ import '../../../app/di/providers.dart';
 /// Estado de las sucursales del tenant actual — mismo patrón que
 /// `SubscriptionPlanState`.
 class BranchesState {
-  const BranchesState({this.sucursales = const [], this.isLoading = false, this.errorMessage});
+  const BranchesState({
+    this.sucursales = const [],
+    this.isLoading = false,
+    this.errorMessage,
+  });
 
   final List<Sucursal> sucursales;
   final bool isLoading;
@@ -26,9 +30,8 @@ class BranchesState {
   }
 }
 
-final branchesControllerProvider = NotifierProvider<BranchesController, BranchesState>(
-  BranchesController.new,
-);
+final branchesControllerProvider =
+    NotifierProvider<BranchesController, BranchesState>(BranchesController.new);
 
 class BranchesController extends Notifier<BranchesState> {
   @override
@@ -40,7 +43,9 @@ class BranchesController extends Notifier<BranchesState> {
   Future<void> cargar() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final sucursales = await ref.read(schedulingRepositoryProvider).listarSucursales();
+      final sucursales = await ref
+          .read(schedulingRepositoryProvider)
+          .listarSucursales();
       state = state.copyWith(sucursales: sucursales, isLoading: false);
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -56,7 +61,11 @@ class BranchesController extends Notifier<BranchesState> {
   }) async {
     await ref
         .read(schedulingRepositoryProvider)
-        .crearSucursal(nombre: nombre, direccion: direccion, capacidadSimultanea: capacidadSimultanea);
+        .crearSucursal(
+          nombre: nombre,
+          direccion: direccion,
+          capacidadSimultanea: capacidadSimultanea,
+        );
     await cargar();
   }
 
@@ -66,7 +75,9 @@ class BranchesController extends Notifier<BranchesState> {
     String? direccion,
     required int capacidadSimultanea,
   }) async {
-    await ref.read(schedulingRepositoryProvider).actualizarSucursal(
+    await ref
+        .read(schedulingRepositoryProvider)
+        .actualizarSucursal(
           id: id,
           nombre: nombre,
           direccion: direccion,

@@ -6,6 +6,8 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
+import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -78,5 +80,51 @@ class LayeredArchitectureTest {
             .dependOnClassesThat()
             .resideInAPackage("com.lavadero.scheduling..");
     regla.check(clases);
+  }
+
+  /**
+   * catalog es una hoja: el resto lo consume (vía su capa `application`), él no depende de ningún
+   * otro módulo de negocio. Su build.gradle.kts solo trae tenant-management como
+   * testImplementation; esto lo hace cumplir también en el código de producción.
+   */
+  @Test
+  void catalogNoDependeDeOtrosModulosDeNegocio() {
+    ArchRule regla =
+        noClasses()
+            .that()
+            .resideInAPackage("com.lavadero.catalog..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "com.lavadero.tenant..", "com.lavadero.identity..", "com.lavadero.scheduling..");
+    regla.check(clases);
+  }
+
+  /**
+   * Entre módulos solo se habla por la capa `application` (casos de uso + DTOs). Importar la
+   * `infrastructure`/`interfaces` de otro módulo acopla a sus detalles internos: así se coló
+   * scheduling usando el principal JWT de identity-access, que ahora vive en shared-kernel.
+   */
+  @Test
+  void ningunModuloUsaLaInfraestructuraNiLasInterfacesDeOtro() {
+    List<String> modulos = List.of("tenant", "identity", "catalog", "scheduling");
+    for (String modulo : modulos) {
+      String[] internosDeOtros =
+          modulos.stream()
+              .filter(otro -> !otro.equals(modulo))
+              .flatMap(
+                  otro ->
+                      Stream.of(
+                          "com.lavadero." + otro + ".infrastructure..",
+                          "com.lavadero." + otro + ".interfaces.."))
+              .toArray(String[]::new);
+      noClasses()
+          .that()
+          .resideInAPackage("com.lavadero." + modulo + "..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(internosDeOtros)
+          .check(clases);
+    }
   }
 }

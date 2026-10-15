@@ -27,4 +27,10 @@ interface UsuarioJpaRepository extends JpaRepository<UsuarioJpaEntity, UUID> {
 
   @Query("select u from UsuarioJpaEntity u where :rol member of u.roles order by u.nombre")
   List<UsuarioJpaEntity> findByRol(@Param("rol") Rol rol);
+
+  @Query(
+      "select u from UsuarioJpaEntity u where :rol member of u.roles and u.sucursalId = :sucursalId"
+          + " order by u.nombre")
+  List<UsuarioJpaEntity> findByRolAndSucursalId(
+      @Param("rol") Rol rol, @Param("sucursalId") UUID sucursalId);
 }

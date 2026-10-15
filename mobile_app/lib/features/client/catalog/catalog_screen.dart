@@ -2,73 +2,247 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lavadero_core/lavadero_core.dart';
 
+import '../../../app/di/providers.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../shared/user_display.dart';
+import '../../shared/widgets/profile_menu_button.dart';
+import '../booking/application/booking_controller.dart';
+import '../client_navigation.dart';
+import '../reservations/application/my_reservations_controller.dart';
+import '../reservations/application/reservas_agrupadas.dart';
+import '../widgets/proxima_reserva_hero.dart';
+import '../widgets/servicio_card.dart';
 import 'application/catalog_controller.dart';
 
-/// Catálogo de servicios del lavadero, solo lectura — lo que el cliente ve
-/// antes de reservar. Consume `/api/v1/catalogo/servicios/activos`.
+/// Inicio del cliente: saludo, su próxima reserva (derivada de "Mis
+/// reservas") y el catálogo de servicios activos como grilla de tarjetas.
+/// Tocar un servicio abre "Reservar" con ese servicio ya elegido. Consume
+/// `/api/v1/catalogo/servicios/activos` y `/api/v1/agenda/reservas/mias`.
 class CatalogScreen extends ConsumerWidget {
   const CatalogScreen({super.key});
 
+  static const _columnas = 2;
+
+  Future<void> _refrescar(WidgetRef ref) => Future.wait([
+    ref.read(catalogControllerProvider.notifier).cargar(),
+    ref.read(myReservationsControllerProvider.notifier).cargar(),
+  ]);
+
+  void _reservar(WidgetRef ref, ServiceItem? servicio) {
+    ref.read(servicioElegidoProvider.notifier).elegir(servicio);
+    ref.read(clienteTabProvider.notifier).ir(ClienteTab.reservar);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(catalogControllerProvider);
+    final theme = Theme.of(context);
+    final catalog = ref.watch(catalogControllerProvider);
+    final reservas = ref.watch(myReservationsControllerProvider);
+    final authState = ref.watch(authControllerProvider);
+    final tenantName = ref.watch(selectedTenantNameProvider);
+    final nombre = authState is AuthAuthenticated
+        ? authState.user.nombreCorto
+        : null;
+    final ahora = DateTime.now();
+    final proxima = reservas.proxima(ahora);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Catálogo de servicios')),
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(catalogControllerProvider.notifier).cargar(),
-        child: Padding(
-          padding: const EdgeInsets.all(LavaderoSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () => _refrescar(ref),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              LavaderoSpacing.lg,
+              LavaderoSpacing.md,
+              LavaderoSpacing.lg,
+              LavaderoSpacing.xl,
+            ),
             children: [
-              if (state.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: LavaderoSpacing.md),
-                  child: ErrorBanner(message: state.errorMessage!),
-                ),
-              if (state.isLoading)
-                const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (state.items.isEmpty)
-                ListView(
-                  children: const [
-                    Padding(
-                      padding: EdgeInsets.only(top: LavaderoSpacing.xl),
-                      child: Center(
-                        child: Text('Este lavadero todavía no publicó servicios.'),
+              Row(
+                children: [
+                  // Expanded (no Spacer): el wordmark usa `Flexible` y
+                  // necesita ancho acotado para recortar nombres largos.
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: LavaderoLogo(
+                        size: LavaderoSizes.iconXl,
+                        showWordmark: true,
+                        label: tenantName ?? 'Lavadero',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: LavaderoSpacing.md),
+                  const ProfileMenuButton(),
+                ],
+              ),
+              const SizedBox(height: LavaderoSpacing.lg),
+              FadeSlideIn(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      nombre == null ? 'Hola 👋' : 'Hola, $nombre 👋',
+                      style: theme.textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: LavaderoSpacing.xs),
+                    Text(
+                      'Tu auto merece brillar',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: LavaderoSpacing.lg),
+              FadeSlideIn(
+                index: 1,
+                child: AnimatedSwitcher(
+                  duration: LavaderoMotion.normal,
+                  child: reservas.isLoading && reservas.reservas.isEmpty
+                      ? const _HeroSkeleton()
+                      : proxima != null
+                      ? ProximaReservaHero(
+                          key: ValueKey(proxima.id),
+                          reserva: proxima,
+                          servicio: reservas.servicios[proxima.servicioId],
+                          ahora: ahora,
+                          onTap: () => ref
+                              .read(clienteTabProvider.notifier)
+                              .ir(ClienteTab.reservas),
+                        )
+                      : ReservarCtaHero(onReservar: () => _reservar(ref, null)),
+                ),
+              ),
+              const SizedBox(height: LavaderoSpacing.xl),
+              SectionHeader(
+                title: 'Servicios',
+                subtitle: catalog.items.isEmpty
+                    ? null
+                    : 'Toca uno para reservarlo',
+              ),
+              if (catalog.errorMessage != null) ...[
+                ErrorBanner(
+                  message: catalog.errorMessage!,
+                  onRetry: ref.read(catalogControllerProvider.notifier).cargar,
+                ),
+                const SizedBox(height: LavaderoSpacing.md),
+              ],
+              if (catalog.isLoading && catalog.items.isEmpty)
+                const _GridSkeleton(columnas: _columnas)
+              else if (catalog.items.isEmpty && catalog.errorMessage == null)
+                const EmptyState(
+                  icon: Icons.local_car_wash_outlined,
+                  title: 'Aún no hay servicios',
+                  message: 'Este lavadero todavía no publicó servicios.',
                 )
               else
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: state.items.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = state.items[index];
-                      return ListTile(
-                        leading: const Icon(Icons.local_car_wash_outlined),
-                        title: Text(item.nombre),
-                        subtitle: item.descripcion == null || item.descripcion!.isEmpty
-                            ? Text('${item.duracionEstimadaMinutos} min')
-                            : Text(
-                                '${item.descripcion}\n${item.duracionEstimadaMinutos} min',
-                              ),
-                        isThreeLine: item.descripcion != null && item.descripcion!.isNotEmpty,
-                        trailing: Text(
-                          '\$${item.precio.toStringAsFixed(0)}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      );
-                    },
-                  ),
+                _ServiciosGrid(
+                  servicios: catalog.items,
+                  columnas: _columnas,
+                  onTap: (servicio) => _reservar(ref, servicio),
                 ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Grilla de N columnas con filas de altura igual (la tarjeta más alta de
+/// cada fila manda), sin `GridView` + `childAspectRatio` fijo que recorta
+/// el texto con fuentes grandes.
+class _ServiciosGrid extends StatelessWidget {
+  const _ServiciosGrid({
+    required this.servicios,
+    required this.columnas,
+    required this.onTap,
+  });
+
+  final List<ServiceItem> servicios;
+  final int columnas;
+  final ValueChanged<ServiceItem> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final filas = <List<ServiceItem>>[
+      for (var i = 0; i < servicios.length; i += columnas)
+        servicios.sublist(i, (i + columnas).clamp(0, servicios.length)),
+    ];
+    return Column(
+      children: [
+        for (var f = 0; f < filas.length; f++) ...[
+          if (f > 0) const SizedBox(height: LavaderoSpacing.smd),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var c = 0; c < columnas; c++) ...[
+                  if (c > 0) const SizedBox(width: LavaderoSpacing.smd),
+                  Expanded(
+                    child: c < filas[f].length
+                        ? FadeSlideIn(
+                            index: f * columnas + c + 2,
+                            child: ServicioCard(
+                              servicio: filas[f][c],
+                              onTap: () => onTap(filas[f][c]),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _HeroSkeleton extends StatelessWidget {
+  const _HeroSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Skeleton(
+      height: LavaderoSizes.avatarLg * 2 + LavaderoSpacing.xl,
+      radius: LavaderoRadii.lg,
+    );
+  }
+}
+
+class _GridSkeleton extends StatelessWidget {
+  const _GridSkeleton({required this.columnas});
+
+  final int columnas;
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonScope(
+      child: Column(
+        children: [
+          for (var f = 0; f < 2; f++) ...[
+            if (f > 0) const SizedBox(height: LavaderoSpacing.smd),
+            Row(
+              children: [
+                for (var c = 0; c < columnas; c++) ...[
+                  if (c > 0) const SizedBox(width: LavaderoSpacing.smd),
+                  const Expanded(
+                    child: Skeleton(
+                      height: LavaderoSizes.avatarLg * 2 + LavaderoSpacing.lg,
+                      radius: LavaderoRadii.lg,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

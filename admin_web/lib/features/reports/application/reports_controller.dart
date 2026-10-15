@@ -12,8 +12,8 @@ class ReportsState {
     this.errorMessage,
     DateTime? desde,
     DateTime? hasta,
-  })  : hasta = hasta ?? DateTime.now(),
-        desde = desde ?? DateTime.now().subtract(const Duration(days: 6));
+  }) : hasta = hasta ?? DateTime.now(),
+       desde = desde ?? DateTime.now().subtract(const Duration(days: 6));
 
   final ResumenVentas? resumen;
   final bool isLoading;
@@ -39,9 +39,8 @@ class ReportsState {
   }
 }
 
-final reportsControllerProvider = NotifierProvider<ReportsController, ReportsState>(
-  ReportsController.new,
-);
+final reportsControllerProvider =
+    NotifierProvider<ReportsController, ReportsState>(ReportsController.new);
 
 class ReportsController extends Notifier<ReportsState> {
   @override
@@ -62,7 +61,10 @@ class ReportsController extends Notifier<ReportsState> {
     }
   }
 
-  Future<void> cambiarRango({required DateTime desde, required DateTime hasta}) async {
+  Future<void> cambiarRango({
+    required DateTime desde,
+    required DateTime hasta,
+  }) async {
     state = state.copyWith(desde: desde, hasta: hasta);
     await cargar();
   }

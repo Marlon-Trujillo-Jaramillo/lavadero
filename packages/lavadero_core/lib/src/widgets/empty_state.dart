@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../theme/design_tokens.dart';
+import 'fade_slide_in.dart';
 
 /// Estado vacío reutilizable (lista sin elementos): icono + título +
 /// mensaje + acción opcional. Usado por pantallas de listado en vez de
-/// dejar un `ListView` vacío en blanco.
+/// dejar un `ListView` vacío en blanco. El ícono va sobre un halo con el
+/// degradado de marca para que el vacío se sienta intencional, no roto.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -13,6 +15,7 @@ class EmptyState extends StatelessWidget {
     this.message,
     this.actionLabel,
     this.onAction,
+    this.minHeight,
   });
 
   final IconData icon;
@@ -21,39 +24,76 @@ class EmptyState extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Alto mínimo (contenido centrado) cuando el estado vacío vive dentro de
+  /// una lista o tarjeta en vez de ocupar toda la pantalla — en lugar de
+  /// envolverlo en un `SizedBox(height: ...)` en cada llamador.
+  final double? minHeight;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
+    final scheme = theme.colorScheme;
+    final content = Center(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(LavaderoSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56, color: theme.colorScheme.outline),
-            const SizedBox(height: LavaderoSpacing.md),
-            Text(
-              title,
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
+        child: FadeSlideIn(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: LavaderoSizes.emptyStateMaxWidth,
             ),
-            if (message != null) ...[
-              const SizedBox(height: LavaderoSpacing.xs),
-              Text(
-                message!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: LavaderoSizes.emptyStateIcon,
+                  height: LavaderoSizes.emptyStateIcon,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        scheme.primaryContainer,
+                        scheme.secondaryContainer,
+                      ],
+                    ),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: LavaderoSizes.iconXl + LavaderoSpacing.xs,
+                    color: scheme.primary,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: LavaderoSpacing.lg),
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
+                const SizedBox(height: LavaderoSpacing.lg),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                if (message != null) ...[
+                  const SizedBox(height: LavaderoSpacing.sm),
+                  Text(
+                    message!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                if (actionLabel != null && onAction != null) ...[
+                  const SizedBox(height: LavaderoSpacing.lg),
+                  FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
+    );
+    if (minHeight == null) return content;
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: minHeight!),
+      child: content,
     );
   }
 }

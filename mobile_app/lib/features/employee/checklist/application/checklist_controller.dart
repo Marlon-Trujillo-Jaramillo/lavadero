@@ -35,9 +35,10 @@ class ChecklistState {
   }
 }
 
-final checklistControllerProvider = NotifierProvider<ChecklistController, ChecklistState>(
-  ChecklistController.new,
-);
+final checklistControllerProvider =
+    NotifierProvider<ChecklistController, ChecklistState>(
+      ChecklistController.new,
+    );
 
 class ChecklistController extends Notifier<ChecklistState> {
   @override
@@ -46,7 +47,9 @@ class ChecklistController extends Notifier<ChecklistState> {
   Future<void> seleccionarReserva(String reservaId) async {
     state = ChecklistState(reservaId: reservaId, isLoading: true);
     try {
-      final items = await ref.read(schedulingRepositoryProvider).obtenerChecklist(reservaId);
+      final items = await ref
+          .read(schedulingRepositoryProvider)
+          .obtenerChecklist(reservaId);
       state = state.copyWith(items: items, isLoading: false);
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -59,7 +62,11 @@ class ChecklistController extends Notifier<ChecklistState> {
     try {
       final items = await ref
           .read(schedulingRepositoryProvider)
-          .marcarChecklistItem(reservaId: reservaId, tipo: tipo, completado: completado);
+          .marcarChecklistItem(
+            reservaId: reservaId,
+            tipo: tipo,
+            completado: completado,
+          );
       state = state.copyWith(items: items, clearError: true);
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message);
