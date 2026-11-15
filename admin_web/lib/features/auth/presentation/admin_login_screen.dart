@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lavadero_core/lavadero_core.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../app/di/providers.dart';
+import '../../../app/router/app_routes.dart';
 import '../application/admin_auth_controller.dart';
 
 /// Login de administración (dueño de lavadero / super-admin) sobre
@@ -112,6 +115,13 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                 isLoading: _isLoading,
                 onPressed: _submit,
                 child: const Text('Ingresar'),
+              ),
+              const SizedBox(height: LavaderoSpacing.sm),
+              TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => context.go(AppRoutes.registro),
+                child: const Text('¿Tu lavadero aún no tiene cuenta? Créala'),
               ),
             ],
           ),

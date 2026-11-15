@@ -19,7 +19,8 @@ cambiarla.
 (`domain → application → infrastructure → interfaces`, verificado por ArchUnit), un caso de uso
 por operación (no `XService` gordo — SRP), agregados sin dependencias de framework, `Money`/value
 objects en vez de primitivos sueltos, controllers sin try/catch, toda migración de un FK/columna de
-lookup lleva su índice, todo caso de uso de solo lectura es `@Transactional(readOnly = true)`.
+lookup lleva su índice, todo caso de uso de solo lectura es `@Transactional(readOnly = true)`. Todo endpoint público de alta valida
+sus campos con `LimitesCampos` (correo, contraseña 8–128, tamaños máximos).
 
 **Flutter** (`admin_web/`, `mobile_app/`, `packages/lavadero_core/`): CERO codegen (no Freezed, no
 `json_serializable`, no `build_runner` — modelos escritos a mano); Riverpod puro (`Notifier`, sin

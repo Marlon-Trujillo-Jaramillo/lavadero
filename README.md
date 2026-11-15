@@ -17,7 +17,7 @@ A Spring Boot modular monolith plus two Flutter apps, designed, built and operat
 - **Architecture enforced by tests**: ArchUnit checks layer dependencies and module boundaries on every build, so the architecture can't silently decay.
 - **Tenant isolation in the database**: every tenant-scoped table uses PostgreSQL **Row-Level Security** (`FORCE ROW LEVEL SECURITY`) on top of Hibernate filters. Integration tests run against a real Postgres with **Testcontainers** to prove that one tenant can never read another's data.
 - **Payments**: subscription plans charged through **Wompi** (Colombian payment gateway), with integrity signatures and an idempotent webhook (a unique external transaction id per payment).
-- **Security**: JWT access tokens + rotating refresh tokens with reuse detection (a reused token revokes the whole chain), Argon2 password hashing, role-based access (`SUPER_ADMIN`, `ADMIN_TENANT`, `EMPLEADO`, `CLIENTE`), and data scoped per branch for employees.
+- **Security**: input limits on every public signup endpoint (email format, 8–128 character passwords to also cap Argon2 work), JWT access tokens + rotating refresh tokens with reuse detection (a reused token revokes the whole chain), Argon2 password hashing, role-based access (`SUPER_ADMIN`, `ADMIN_TENANT`, `EMPLEADO`, `CLIENTE`), and data scoped per branch for employees.
 - **Observability**: Sentry on the backend and in both Flutter apps; Spring Boot Actuator health checks.
 - **Database migrations**: Flyway, versioned per module, with indexes for every foreign key and lookup column.
 - **Performance review**: 30 techniques checked one by one against the code ([spec 007](docs/specs/007-rendimiento.md)). Measured and fixed an N+1 (9 → 2 SQL statements when listing employees, guarded by a test), gzip responses, slow-request logging, lazy lists and unused dependencies removed.
@@ -60,6 +60,7 @@ modules/scheduling/src/main/java/com/lavadero/scheduling/
 
 | Area | What it does |
 |---|---|
+| Self-service signup | A car wash creates its account from the web (business, main branch and owner account in one transaction) and lands in its dashboard ([spec 008](docs/specs/008-registro-lavaderos.md)) |
 | Tenants and branches | Each car wash is a tenant with one or more branches (sucursales) and their capacity |
 | Catalog | Services with prices and durations, managed by the owner |
 | Scheduling | Customers book by branch and time slot; employees see and run the day's agenda |
@@ -134,7 +135,7 @@ This project is built with Claude Code as a pair programmer, with the rules and 
 
 - Event-driven integration between modules (transactional outbox + Kafka) for notifications and reporting
 - Deployment on AWS (RDS, S3, containers)
-- Tenant self-registration
+- Email verification on signup
 
 ## Author
 

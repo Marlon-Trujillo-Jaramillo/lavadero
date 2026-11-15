@@ -66,6 +66,42 @@ class AuthRepository {
     }
   }
 
+  /// Alta self-service de un lavadero nuevo (`POST /onboarding/tenants`):
+  /// crea el lavadero, su sucursal principal y el primer administrador en
+  /// una sola transacción del backend, y deja la sesión iniciada. No lleva
+  /// `X-Tenant-Slug`: el lavadero todavía no existe.
+  Future<AuthResponse> registrarLavadero({
+    required String tenantNombre,
+    required String tenantNit,
+    required String tenantSlug,
+    required String adminNombre,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/onboarding/tenants',
+        data: {
+          'tenantNombre': tenantNombre,
+          'tenantNit': tenantNit,
+          'tenantSlug': tenantSlug,
+          'adminNombre': adminNombre,
+          'adminEmail': email,
+          'adminPassword': password,
+        },
+      );
+      final auth = AuthResponse.fromJson(response.data!);
+      await _tokenStorage.saveTokens(
+        accessToken: auth.accessToken,
+        refreshToken: auth.refreshToken,
+      );
+      await _tokenStorage.saveUserProfile(auth.user);
+      return auth;
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
   /// Restaura la sesión guardada localmente (sin llamar al backend): si hay
   /// tokens y un perfil de usuario cacheados, los devuelve para que el
   /// router pueda decidir de una vez el shell correcto (cliente/empleado).
