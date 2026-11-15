@@ -2,9 +2,12 @@
 
 ## Estado
 
-En construcción — dos de las tres pestañas de `mobile_app` (rol EMPLEADO) eran
-`ComingSoonPlaceholder` ("Turnos" ya se resolvió con la agenda de Fase 2); esta spec cubre las
-otras dos.
+Implementado. Backend en `modules/scheduling` (aggregates `ChecklistItem` e `Incidencia`,
+migraciones V16–V18 con RLS, `ChecklistController` e `IncidenciaController`) y `mobile_app`
+(`ChecklistScreen` con marcado optimista e `IncidentsScreen`). Verificado por `ChecklistItemTest`,
+`IncidenciaTest`, `ChecklistItemRlsIntegrationTest` e `IncidenciaRlsIntegrationTest` en
+`./gradlew build`. Antes de esta spec, dos de las tres pestañas del EMPLEADO eran
+`ComingSoonPlaceholder` ("Turnos" ya se había resuelto con la agenda de Fase 2).
 
 ## Contexto
 
