@@ -19,7 +19,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  static const _minPassword = 6;
+  // Igual que el backend (LimitesCampos.PASSWORD_MIN): si no, el servidor rechaza el registro.
+  static const _minPassword = 8;
 
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();

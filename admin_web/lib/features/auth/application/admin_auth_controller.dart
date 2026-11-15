@@ -53,6 +53,29 @@ class AdminAuthController extends Notifier<AdminAuthState> {
     state = AdminAuthAuthenticated(auth.user);
   }
 
+  /// Alta de un lavadero nuevo: queda con la sesión iniciada como su
+  /// primer administrador (el redirect del router lleva al panel).
+  Future<void> crearCuenta({
+    required String tenantNombre,
+    required String tenantNit,
+    required String tenantSlug,
+    required String adminNombre,
+    required String email,
+    required String password,
+  }) async {
+    final auth = await ref
+        .read(authRepositoryProvider)
+        .registrarLavadero(
+          tenantNombre: tenantNombre,
+          tenantNit: tenantNit,
+          tenantSlug: tenantSlug,
+          adminNombre: adminNombre,
+          email: email,
+          password: password,
+        );
+    state = AdminAuthAuthenticated(auth.user);
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     state = const AdminAuthUnauthenticated();

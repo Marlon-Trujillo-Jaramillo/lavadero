@@ -118,6 +118,69 @@ void main() {
     });
   });
 
+  group('registrarLavadero', () {
+    test('crea el lavadero sin X-Tenant-Slug y deja la sesión iniciada',
+        () async {
+      when(() => adapter.fetch(any(), any(), any())).thenAnswer(
+        (_) async => jsonResponseBody(loginResponseJson, 200),
+      );
+
+      await authRepository.registrarLavadero(
+        tenantNombre: 'Lavadero Centro',
+        tenantNit: '900123456-7',
+        tenantSlug: 'lavadero-centro',
+        adminNombre: 'Dueña',
+        email: 'duena@lavadero.com',
+        password: 'clave-segura',
+      );
+
+      expect(await tokenStorage.hasSession(), isTrue);
+      final captured = verify(() => adapter.fetch(captureAny(), any(), any()))
+          .captured
+          .single as RequestOptions;
+      expect(captured.path, '/onboarding/tenants');
+      expect(captured.headers.containsKey('X-Tenant-Slug'), isFalse);
+      expect(captured.data, {
+        'tenantNombre': 'Lavadero Centro',
+        'tenantNit': '900123456-7',
+        'tenantSlug': 'lavadero-centro',
+        'adminNombre': 'Dueña',
+        'adminEmail': 'duena@lavadero.com',
+        'adminPassword': 'clave-segura',
+      });
+    });
+
+    test('un slug ocupado llega como ApiException y no guarda sesión',
+        () async {
+      when(() => adapter.fetch(any(), any(), any())).thenAnswer(
+        (_) async => jsonResponseBody(
+          errorBody(
+            status: 400,
+            error: 'Bad Request',
+            message: "Ya existe un tenant con el slug 'lavadero-centro'",
+            path: '/api/v1/onboarding/tenants',
+          ),
+          400,
+        ),
+      );
+
+      await expectLater(
+        authRepository.registrarLavadero(
+          tenantNombre: 'Lavadero Centro',
+          tenantNit: '900123456-7',
+          tenantSlug: 'lavadero-centro',
+          adminNombre: 'Dueña',
+          email: 'duena@lavadero.com',
+          password: 'clave-segura',
+        ),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 400),
+        ),
+      );
+      expect(await tokenStorage.hasSession(), isFalse);
+    });
+  });
+
   group('refresh', () {
     test('proactive refresh stores new tokens', () async {
       await tokenStorage.saveTokens(

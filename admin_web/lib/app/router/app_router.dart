@@ -5,6 +5,7 @@ import 'package:lavadero_core/lavadero_core.dart';
 
 import '../../features/auth/application/admin_auth_controller.dart';
 import '../../features/auth/presentation/admin_login_screen.dart';
+import '../../features/auth/presentation/admin_signup_screen.dart';
 import '../admin_shell.dart';
 import 'app_routes.dart';
 
@@ -27,7 +28,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
       final authState = ref.read(adminAuthControllerProvider);
-      final isPublicRoute = state.matchedLocation == AppRoutes.login;
+      final isPublicRoute =
+          state.matchedLocation == AppRoutes.login ||
+          state.matchedLocation == AppRoutes.registro;
 
       if (authState is AdminAuthUnknown) return null;
       if (authState is AdminAuthAuthenticated && isPublicRoute) {
@@ -42,6 +45,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const AdminLoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.registro,
+        builder: (context, state) => const AdminSignupScreen(),
       ),
       GoRoute(
         path: AppRoutes.home,
