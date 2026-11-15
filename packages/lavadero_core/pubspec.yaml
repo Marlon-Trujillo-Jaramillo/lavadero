@@ -23,7 +23,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.7.0
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^11.2.0
   meta: ^1.15.0
   # Monitoreo de errores (ver docs/specs/004-observabilidad.md) — solo el
   # paquete base (no `sentry_flutter`): este paquete no necesita captura de
