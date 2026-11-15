@@ -116,6 +116,19 @@ Tests: `cd backend && ./gradlew build` (Testcontainers needs Docker running).
 
 The full guide, with demo data and troubleshooting, is in [`docs/desarrollo-local.md`](docs/desarrollo-local.md).
 
+## AI-assisted engineering
+
+This project is built with Claude Code as a pair programmer, with the rules and reviewers written down in the repo so the AI follows the same standards as a human contributor:
+
+- **Project contract** ([`CLAUDE.md`](CLAUDE.md)): non-negotiable conventions for the backend (Clean Architecture per module, one use case per operation, value objects, indexed foreign keys, read-only transactions) and for Flutter (Riverpod without codegen, repository pattern, design tokens only).
+- **Specialist reviewer agents** ([`.claude/agents/`](.claude/agents)) that run after every relevant change:
+  - `rls-guardian` audits every migration and JPA entity for tenant isolation. It encodes a real incident found during development: the app connected as a Postgres superuser, which silently bypasses Row-Level Security, so runtime queries now use a dedicated non-superuser role.
+  - `architecture-guardian` checks module layering, Gradle wiring and cross-module boundaries.
+  - `flutter-reviewer` checks state management, navigation and design-system usage.
+- **Project skills** ([`.claude/skills/`](.claude/skills)): a whole-repo `quality-audit` (design consistency, SOLID drift, performance) and reference playbooks for multi-tenant SaaS and Postgres.
+- **Decisions before code**: every feature starts as a written spec in [`docs/specs/`](docs/specs) and every structural decision as an [ADR](docs/adr). The AI implements against the spec; the tests, ArchUnit rules and reviewers verify it.
+- **Guardrails on the workstation**: hooks block secrets from being written to files, block force pushes and destructive shell commands, and auto-format code.
+
 ## Roadmap
 
 - Event-driven integration between modules (transactional outbox + Kafka) for notifications and reporting
