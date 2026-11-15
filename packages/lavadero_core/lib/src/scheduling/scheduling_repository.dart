@@ -74,6 +74,7 @@ class SchedulingRepository {
     required String sucursalId,
     required String servicioId,
     required DateTime fechaHoraInicio,
+    String? vehiculoId,
   }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
@@ -82,6 +83,7 @@ class SchedulingRepository {
           'sucursalId': sucursalId,
           'servicioId': servicioId,
           'fechaHoraInicio': fechaHoraInicio.toUtc().toIso8601String(),
+          if (vehiculoId != null) 'vehiculoId': vehiculoId,
         },
       );
       return Reserva.fromJson(response.data!);

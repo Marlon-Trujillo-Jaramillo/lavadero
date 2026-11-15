@@ -13,5 +13,7 @@ export 'service_item.dart';
 export 'subscription_plan.dart';
 export 'sucursal.dart';
 export 'tenant_summary.dart';
+export 'tipo_vehiculo.dart';
 export 'user_profile.dart';
 export 'user_role.dart';
+export 'vehiculo.dart';

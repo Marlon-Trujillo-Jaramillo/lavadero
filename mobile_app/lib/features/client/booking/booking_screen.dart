@@ -6,6 +6,7 @@ import '../../shared/widgets/profile_menu_button.dart';
 import '../../shared/widgets/success_check.dart';
 import '../client_navigation.dart';
 import '../reservations/application/my_reservations_controller.dart';
+import '../vehicles/vehicles_screen.dart';
 import 'application/booking_controller.dart';
 
 /// Reserva de un servicio del catálogo, en una sucursal, para un horario, en
@@ -47,6 +48,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   DateTime? _horario;
   Sucursal? _sucursal;
 
+  /// Vehículo elegido. Mientras el cliente no elija, se propone el más
+  /// reciente; "Sin vehículo" es una elección válida (null).
+  String? _vehiculoId;
+  bool _vehiculoElegido = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,23 +63,47 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         : _soloFecha(ahora);
   }
 
+  String? _vehiculoEfectivo(List<Vehiculo> vehiculos) =>
+      _vehiculoElegido ? _vehiculoId : vehiculos.firstOrNull?.id;
+
+  void _elegirVehiculo(String? id) => setState(() {
+    _vehiculoId = id;
+    _vehiculoElegido = true;
+  });
+
+  Future<void> _agregarVehiculo() async {
+    final nuevo = await abrirFormularioVehiculo(context);
+    if (nuevo == null || !mounted) return;
+    ref.read(bookingControllerProvider.notifier).agregarVehiculo(nuevo);
+    _elegirVehiculo(nuevo.id);
+  }
+
   Sucursal? _sucursalEfectiva(List<Sucursal> sucursales) =>
       _sucursal ?? (sucursales.length == 1 ? sucursales.first : null);
 
-  void _confirmar(ServiceItem servicio, Sucursal sucursal, DateTime horario) {
+  void _confirmar(
+    ServiceItem servicio,
+    Sucursal sucursal,
+    DateTime horario,
+    String? vehiculoId,
+  ) {
     ref
         .read(bookingControllerProvider.notifier)
         .reservar(
           sucursalId: sucursal.id,
           servicioId: servicio.id,
           fechaHoraInicio: horario,
+          vehiculoId: vehiculoId,
         );
   }
 
   void _reiniciar() {
     ref.read(bookingControllerProvider.notifier).reiniciar();
     ref.read(servicioElegidoProvider.notifier).elegir(null);
-    setState(() => _horario = null);
+    setState(() {
+      _horario = null;
+      _vehiculoElegido = false;
+    });
   }
 
   void _verMisReservas() {
@@ -116,6 +146,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     }
 
     final sucursal = _sucursalEfectiva(state.sucursales);
+    final vehiculoId = _vehiculoEfectivo(state.vehiculos);
     final ahora = DateTime.now();
     final horarios = _horariosDe(_dia, ahora);
     final puedeReservar = !state.isLoading && state.servicios.isNotEmpty;
@@ -128,7 +159,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               isSubmitting: state.isSubmitting,
               onConfirmar:
                   servicio != null && sucursal != null && _horario != null
-                  ? () => _confirmar(servicio, sucursal, _horario!)
+                  ? () => _confirmar(servicio, sucursal, _horario!, vehiculoId)
                   : null,
             )
           : null,
@@ -261,6 +292,17 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 )
               else if (sucursal != null)
                 _SucursalUnica(sucursal: sucursal),
+              _Paso(
+                numero: state.sucursales.length > 1 ? 5 : 4,
+                titulo: 'Vehículo (opcional)',
+                completo: vehiculoId != null,
+                child: _VehiculoOpciones(
+                  vehiculos: state.vehiculos,
+                  seleccionadoId: vehiculoId,
+                  onElegir: _elegirVehiculo,
+                  onAgregar: _agregarVehiculo,
+                ),
+              ),
             ],
           ],
         ),
@@ -753,6 +795,12 @@ class _ConfirmacionReserva extends StatelessWidget {
                         label: 'Sucursal',
                         valor: sucursal!.nombre,
                       ),
+                    if (reserva.vehiculoPlaca != null)
+                      _Detalle(
+                        icon: Icons.directions_car_rounded,
+                        label: 'Vehículo',
+                        valor: reserva.vehiculoPlaca!,
+                      ),
                     _Detalle(
                       icon: Icons.event_rounded,
                       label: 'Fecha',
@@ -851,6 +899,53 @@ class _Detalle extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Paso opcional: los vehículos del cliente como opciones, "Sin vehículo" y
+/// un atajo para agregar uno nuevo sin salir de la reserva.
+class _VehiculoOpciones extends StatelessWidget {
+  const _VehiculoOpciones({
+    required this.vehiculos,
+    required this.seleccionadoId,
+    required this.onElegir,
+    required this.onAgregar,
+  });
+
+  final List<Vehiculo> vehiculos;
+  final String? seleccionadoId;
+  final ValueChanged<String?> onElegir;
+  final VoidCallback onAgregar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: LavaderoSpacing.sm,
+      runSpacing: LavaderoSpacing.sm,
+      children: [
+        for (final v in vehiculos)
+          ChoiceChip(
+            avatar: Icon(v.tipo.icono, size: LavaderoSizes.iconSm),
+            showCheckmark: false,
+            label: Text(v.placa),
+            tooltip: v.descripcion,
+            selected: v.id == seleccionadoId,
+            onSelected: (_) => onElegir(v.id),
+          ),
+        if (vehiculos.isNotEmpty)
+          ChoiceChip(
+            showCheckmark: false,
+            label: const Text('Sin vehículo'),
+            selected: seleccionadoId == null,
+            onSelected: (_) => onElegir(null),
+          ),
+        ActionChip(
+          avatar: const Icon(Icons.add_rounded, size: LavaderoSizes.iconSm),
+          label: Text(vehiculos.isEmpty ? 'Agregar mi vehículo' : 'Agregar'),
+          onPressed: onAgregar,
+        ),
+      ],
     );
   }
 }

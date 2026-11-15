@@ -8,6 +8,7 @@ class BookingState {
   const BookingState({
     this.servicios = const [],
     this.sucursales = const [],
+    this.vehiculos = const [],
     this.isLoading = false,
     this.isSubmitting = false,
     this.errorMessage,
@@ -16,6 +17,10 @@ class BookingState {
 
   final List<ServiceItem> servicios;
   final List<Sucursal> sucursales;
+
+  /// Vehículos del cliente para elegir (opcional). Vacío si no tiene o si
+  /// no se pudieron cargar: reservar no depende de ellos.
+  final List<Vehiculo> vehiculos;
   final bool isLoading;
   final bool isSubmitting;
   final String? errorMessage;
@@ -24,6 +29,7 @@ class BookingState {
   BookingState copyWith({
     List<ServiceItem>? servicios,
     List<Sucursal>? sucursales,
+    List<Vehiculo>? vehiculos,
     bool? isLoading,
     bool? isSubmitting,
     String? errorMessage,
@@ -33,6 +39,7 @@ class BookingState {
     return BookingState(
       servicios: servicios ?? this.servicios,
       sucursales: sucursales ?? this.sucursales,
+      vehiculos: vehiculos ?? this.vehiculos,
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -63,6 +70,7 @@ class BookingController extends Notifier<BookingState> {
       state = state.copyWith(
         servicios: servicios,
         sucursales: sucursales,
+        vehiculos: await _vehiculosSinFallar(),
         isLoading: false,
       );
     } on ApiException catch (e) {
@@ -74,6 +82,7 @@ class BookingController extends Notifier<BookingState> {
     required String sucursalId,
     required String servicioId,
     required DateTime fechaHoraInicio,
+    String? vehiculoId,
   }) async {
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
@@ -83,6 +92,7 @@ class BookingController extends Notifier<BookingState> {
             sucursalId: sucursalId,
             servicioId: servicioId,
             fechaHoraInicio: fechaHoraInicio,
+            vehiculoId: vehiculoId,
           );
       state = state.copyWith(isSubmitting: false, reservaCreada: reserva);
     } on ApiException catch (e) {
@@ -95,7 +105,21 @@ class BookingController extends Notifier<BookingState> {
     state = BookingState(
       servicios: state.servicios,
       sucursales: state.sucursales,
+      vehiculos: state.vehiculos,
     );
+  }
+
+  /// Agrega el vehículo recién creado desde la pantalla de reservar.
+  void agregarVehiculo(Vehiculo vehiculo) {
+    state = state.copyWith(vehiculos: [vehiculo, ...state.vehiculos]);
+  }
+
+  Future<List<Vehiculo>> _vehiculosSinFallar() async {
+    try {
+      return await ref.read(vehiculoRepositoryProvider).misVehiculos();
+    } on ApiException {
+      return const [];
+    }
   }
 }
 

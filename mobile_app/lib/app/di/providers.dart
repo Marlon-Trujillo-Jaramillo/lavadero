@@ -65,3 +65,7 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
 final schedulingRepositoryProvider = Provider<SchedulingRepository>((ref) {
   return SchedulingRepository(dio: ref.watch(apiClientProvider).dio);
 });
+
+final vehiculoRepositoryProvider = Provider<VehiculoRepository>((ref) {
+  return VehiculoRepository(dio: ref.watch(apiClientProvider).dio);
+});

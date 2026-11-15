@@ -539,6 +539,11 @@ class _ReservaFila extends StatelessWidget {
               icon: Icons.payments_outlined,
               label: Formato.moneda(reserva.precio, reserva.moneda),
             ),
+            if (reserva.vehiculoPlaca != null)
+              MetaPill(
+                icon: Icons.directions_car_rounded,
+                label: reserva.vehiculoPlaca!,
+              ),
           ],
         ),
       ],

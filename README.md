@@ -64,6 +64,7 @@ modules/scheduling/src/main/java/com/lavadero/scheduling/
 | Tenants and branches | Each car wash is a tenant with one or more branches (sucursales) and their capacity |
 | Catalog | Services with prices and durations, managed by the owner |
 | Scheduling | Customers book by branch and time slot; employees see and run the day's agenda |
+| My vehicles | Customers save their cars once and pick one when booking; employees see the plate in their agenda ([spec 009](docs/specs/009-mis-vehiculos.md)) |
 | Service checklist and incidents | Employees go through a checklist per service and report incidents |
 | Dashboard and reports | Sales and booking reports for the owner |
 | Plans and subscriptions | SaaS plans paid with Wompi |

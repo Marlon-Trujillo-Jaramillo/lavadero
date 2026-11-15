@@ -417,6 +417,16 @@ class _TarjetaReserva extends StatelessWidget {
               ReservaEstadoBadge(estado: reserva.estado),
             ],
           ),
+          if (reserva.vehiculoPlaca != null) ...[
+            const SizedBox(height: LavaderoSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: MetaPill(
+                icon: Icons.directions_car_rounded,
+                label: reserva.vehiculoPlaca!,
+              ),
+            ),
+          ],
           if (reserva.estado == ReservaEstado.pendiente ||
               reserva.estado == ReservaEstado.enProgreso) ...[
             const SizedBox(height: LavaderoSpacing.smd),
