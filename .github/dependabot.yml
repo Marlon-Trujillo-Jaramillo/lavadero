@@ -27,6 +27,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Pinned by the Flutter SDK (flutter_test): it moves when Flutter is upgraded.
+      - dependency-name: "meta"
 
   - package-ecosystem: github-actions
     directory: /
