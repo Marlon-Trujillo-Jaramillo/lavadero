@@ -44,6 +44,10 @@ actual no los usa todavía, no hace falta levantarlos.)
 export JAVA_HOME="/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 cd backend
+# Secreto JWT propio de tu máquina (no está en el repo). Guárdalo en tu
+# ~/.zshrc si no quieres que cambie en cada arranque (cambiarlo invalida
+# las sesiones abiertas, nada más).
+export LAVADERO_SECURITY_JWT_SECRET="$(openssl rand -base64 32)"
 ./gradlew :bootstrap:bootRun --args='--spring.profiles.active=dev'
 ```
 Corre en `http://localhost:8080`. Aplica las migraciones Flyway

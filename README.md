@@ -102,7 +102,8 @@ Requires Java 21, Docker and Flutter.
 # 1. Database
 docker compose -f infra/docker-compose.yml up -d postgres
 
-# 2. Backend (applies Flyway migrations on startup)
+# 2. Backend (applies Flyway migrations on startup). The JWT secret is never committed:
+export LAVADERO_SECURITY_JWT_SECRET="$(openssl rand -base64 32)"
 cd backend && ./gradlew :bootstrap:bootRun --args='--spring.profiles.active=dev'
 curl http://localhost:8080/actuator/health   # {"status":"UP"}
 

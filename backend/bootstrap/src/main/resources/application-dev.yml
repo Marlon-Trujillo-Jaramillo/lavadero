@@ -19,11 +19,13 @@ spring:
 lavadero:
   security:
     jwt:
-      # Clave de DESARROLLO únicamente (256 bits, Base64), generada con
-      # `openssl rand -base64 32`. NUNCA reusar este valor en producción:
-      # ahí debe inyectarse vía LAVADERO_SECURITY_JWT_SECRET desde un
-      # secret manager.
-      secret: REMOVED_DEV_SECRET
+      # Sin valor por defecto a propósito: el repo es público, así que un
+      # secreto escrito aquí lo conocería cualquiera y podría firmar tokens.
+      # Genera uno propio por máquina (256 bits, Base64) y expórtalo antes
+      # de arrancar: ver docs/desarrollo-local.md, sección 3.
+      #   export LAVADERO_SECURITY_JWT_SECRET="$(openssl rand -base64 32)"
+      # Si falta, el arranque falla en vez de correr con un secreto conocido.
+      secret: ${LAVADERO_SECURITY_JWT_SECRET}
     cors:
       # `flutter run -d chrome` asigna un puerto local variable en cada
       # corrida (no hay un puerto fijo de `admin_web` en dev): se permite
