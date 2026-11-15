@@ -5,9 +5,13 @@ import com.lavadero.catalog.application.usecase.ObtenerServicioPorIdUseCase;
 import com.lavadero.scheduling.application.command.CrearReservaCommand;
 import com.lavadero.scheduling.application.dto.ReservaDto;
 import com.lavadero.scheduling.domain.model.Reserva;
+import com.lavadero.scheduling.domain.model.Vehiculo;
+import com.lavadero.scheduling.domain.model.VehiculoReservado;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
+import com.lavadero.scheduling.domain.repository.VehiculoRepository;
 import com.lavadero.scheduling.domain.service.DisponibilidadService;
 import com.lavadero.shared.application.UseCase;
+import com.lavadero.shared.application.exception.NotFoundException;
 import com.lavadero.shared.application.exception.ValidationException;
 import com.lavadero.shared.domain.Money;
 import com.lavadero.shared.security.TenantContext;
@@ -32,14 +36,17 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
   private final ReservaRepository reservaRepository;
   private final ObtenerServicioPorIdUseCase obtenerServicioPorIdUseCase;
   private final ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase;
+  private final VehiculoRepository vehiculoRepository;
 
   public CrearReservaUseCase(
       ReservaRepository reservaRepository,
       ObtenerServicioPorIdUseCase obtenerServicioPorIdUseCase,
-      ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase) {
+      ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase,
+      VehiculoRepository vehiculoRepository) {
     this.reservaRepository = reservaRepository;
     this.obtenerServicioPorIdUseCase = obtenerServicioPorIdUseCase;
     this.obtenerSucursalPorIdUseCase = obtenerSucursalPorIdUseCase;
+    this.vehiculoRepository = vehiculoRepository;
   }
 
   @Override
@@ -51,6 +58,7 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
     }
 
     SucursalDto sucursal = obtenerSucursalPorIdUseCase.execute(input.sucursalId());
+    VehiculoReservado vehiculo = resolverVehiculo(input);
 
     Instant inicio = input.fechaHoraInicio();
     Instant fin = inicio.plus(Duration.ofMinutes(servicio.duracionEstimadaMinutos()));
@@ -72,8 +80,25 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
             input.clienteId(),
             inicio,
             servicio.duracionEstimadaMinutos(),
-            Money.de(servicio.precio(), servicio.moneda()));
+            Money.de(servicio.precio(), servicio.moneda()),
+            vehiculo);
 
     return ReservaMapper.toDto(reservaRepository.save(reserva));
+  }
+
+  /**
+   * El vehículo es opcional. Si viene, tiene que ser del mismo cliente y estar activo: RLS ya lo
+   * acota al tenant, pero dentro del tenant un cliente no puede reservar con el carro de otro. Un
+   * vehículo ajeno responde 404 (no confirma que ese id exista).
+   */
+  private VehiculoReservado resolverVehiculo(CrearReservaCommand input) {
+    if (input.vehiculoId() == null) {
+      return null;
+    }
+    return vehiculoRepository
+        .findById(input.vehiculoId())
+        .filter(v -> v.perteneceA(input.clienteId()) && v.isActivo())
+        .map(Vehiculo::paraReserva)
+        .orElseThrow(() -> NotFoundException.de("Vehículo", input.vehiculoId()));
   }
 }

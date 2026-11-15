@@ -15,7 +15,9 @@ public record ReservaResponse(
     int duracionEstimadaMinutos,
     BigDecimal precio,
     String moneda,
-    String estado) {
+    String estado,
+    UUID vehiculoId,
+    String vehiculoPlaca) {
 
   public static ReservaResponse from(ReservaDto dto) {
     return new ReservaResponse(
@@ -28,6 +30,8 @@ public record ReservaResponse(
         dto.duracionEstimadaMinutos(),
         dto.precio(),
         dto.moneda(),
-        dto.estado());
+        dto.estado(),
+        dto.vehiculoId(),
+        dto.vehiculoPlaca());
   }
 }

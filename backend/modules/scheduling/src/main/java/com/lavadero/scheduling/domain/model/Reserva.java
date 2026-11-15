@@ -5,6 +5,7 @@ import com.lavadero.shared.domain.Money;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -28,6 +29,7 @@ public class Reserva extends AggregateRoot<UUID> {
   private final int duracionEstimadaMinutos;
   private final Money precio;
   private ReservaEstado estado;
+  private final VehiculoReservado vehiculo;
 
   public Reserva(
       UUID id,
@@ -39,6 +41,31 @@ public class Reserva extends AggregateRoot<UUID> {
       int duracionEstimadaMinutos,
       Money precio,
       ReservaEstado estado) {
+    this(
+        id,
+        tenantId,
+        sucursalId,
+        servicioId,
+        clienteId,
+        fechaHoraInicio,
+        duracionEstimadaMinutos,
+        precio,
+        estado,
+        null);
+  }
+
+  /** {@code vehiculo} es opcional: el cliente puede reservar sin elegir uno. */
+  public Reserva(
+      UUID id,
+      UUID tenantId,
+      UUID sucursalId,
+      UUID servicioId,
+      UUID clienteId,
+      Instant fechaHoraInicio,
+      int duracionEstimadaMinutos,
+      Money precio,
+      ReservaEstado estado,
+      VehiculoReservado vehiculo) {
     super(id);
     this.tenantId = Objects.requireNonNull(tenantId, "tenantId no puede ser nulo");
     this.sucursalId = Objects.requireNonNull(sucursalId, "sucursalId no puede ser nulo");
@@ -52,6 +79,7 @@ public class Reserva extends AggregateRoot<UUID> {
     this.duracionEstimadaMinutos = duracionEstimadaMinutos;
     this.precio = Objects.requireNonNull(precio, "precio no puede ser nulo");
     this.estado = Objects.requireNonNull(estado, "estado no puede ser nulo");
+    this.vehiculo = vehiculo;
   }
 
   public static Reserva nueva(
@@ -72,6 +100,32 @@ public class Reserva extends AggregateRoot<UUID> {
         duracionEstimadaMinutos,
         precio,
         ReservaEstado.PENDIENTE);
+  }
+
+  public static Reserva nueva(
+      UUID tenantId,
+      UUID sucursalId,
+      UUID servicioId,
+      UUID clienteId,
+      Instant fechaHoraInicio,
+      int duracionEstimadaMinutos,
+      Money precio,
+      VehiculoReservado vehiculo) {
+    return new Reserva(
+        UUID.randomUUID(),
+        tenantId,
+        sucursalId,
+        servicioId,
+        clienteId,
+        fechaHoraInicio,
+        duracionEstimadaMinutos,
+        precio,
+        ReservaEstado.PENDIENTE,
+        vehiculo);
+  }
+
+  public Optional<VehiculoReservado> getVehiculo() {
+    return Optional.ofNullable(vehiculo);
   }
 
   public void iniciar() {
