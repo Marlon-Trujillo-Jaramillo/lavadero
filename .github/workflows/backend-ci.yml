@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/scripts/**"
   pull_request:
     paths:
       - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+      - ".github/scripts/**"
 
 jobs:
   build:
@@ -40,3 +44,15 @@ jobs:
 
       - name: Build (compilación + tests, incluye Testcontainers/RLS con Docker ya disponible en el runner)
         run: ./gradlew build
+
+      - name: Cobertura en el resumen del run
+        if: always()
+        run: python3 ../.github/scripts/coverage_summary.py jacoco .
+
+      - name: Reportes de cobertura (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/**/build/reports/jacoco/test/html/
+          if-no-files-found: ignore

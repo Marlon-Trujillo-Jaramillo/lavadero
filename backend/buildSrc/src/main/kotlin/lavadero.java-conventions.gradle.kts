@@ -12,7 +12,23 @@ import com.diffplug.gradle.spotless.SpotlessExtension
 
 plugins {
     java
+    jacoco
     id("com.diffplug.spotless")
+}
+
+// Cobertura de tests: cada `test` genera su reporte XML (lo lee el CI para
+// publicar el porcentaje en el resumen del run) y HTML (para revisar en local
+// en build/reports/jacoco/test/html/index.html).
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("test"))
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.named("test") {
+    finalizedBy(tasks.named("jacocoTestReport"))
 }
 
 java {
