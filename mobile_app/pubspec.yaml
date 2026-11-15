@@ -13,7 +13,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  cupertino_icons: ^1.0.8
 
   # Estado + DI: ver justificación en app/di/README (Riverpod).
   flutter_riverpod: ^2.6.1

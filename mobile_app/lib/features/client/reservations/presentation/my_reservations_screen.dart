@@ -88,12 +88,55 @@ class MyReservationsScreen extends ConsumerWidget {
       );
     }
 
+    // Las filas se crean aquí pero ListView.builder solo construye y pinta las que
+    // entran en pantalla: con hasta 50 reservas animadas, el resto espera al scroll.
+    final filas = <Widget>[
+      PageHeader(
+        title: 'Mis reservas',
+        description: proximas.isEmpty
+            ? 'Tu historial de lavados'
+            : proximas.length == 1
+            ? 'Tienes 1 reserva activa'
+            : 'Tienes ${proximas.length} reservas activas',
+        trailing: const ProfileMenuButton(),
+      ),
+      if (state.errorMessage != null) ...[
+        ErrorBanner(message: state.errorMessage!, onRetry: controller.cargar),
+        const SizedBox(height: LavaderoSpacing.md),
+      ],
+      if (state.isLoading && state.reservas.isEmpty)
+        const SkeletonList.inline(itemCount: 4)
+      else if (state.reservas.isEmpty) ...[
+        const SizedBox(height: LavaderoSpacing.xl),
+        EmptyState(
+          icon: Icons.event_note_outlined,
+          title: 'Todavía no tienes reservas',
+          message: 'Cuando reserves un lavado, lo verás aquí.',
+          actionLabel: 'Reservar un lavado',
+          onAction: () =>
+              ref.read(clienteTabProvider.notifier).ir(ClienteTab.reservar),
+        ),
+      ] else ...[
+        if (proximas.isNotEmpty) ...[
+          const SectionHeader(title: 'Próximas'),
+          for (var i = 0; i < proximas.length; i++)
+            tarjeta(proximas[i], i, historial: false),
+          const SizedBox(height: LavaderoSpacing.lg),
+        ],
+        if (anteriores.isNotEmpty) ...[
+          const SectionHeader(title: 'Anteriores'),
+          for (var i = 0; i < anteriores.length; i++)
+            tarjeta(anteriores[i], proximas.length + i, historial: true),
+        ],
+      ],
+    ];
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           onRefresh: controller.cargar,
-          child: ListView(
+          child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
               LavaderoSpacing.lg,
@@ -101,54 +144,8 @@ class MyReservationsScreen extends ConsumerWidget {
               LavaderoSpacing.lg,
               LavaderoSpacing.xl,
             ),
-            children: [
-              PageHeader(
-                title: 'Mis reservas',
-                description: proximas.isEmpty
-                    ? 'Tu historial de lavados'
-                    : proximas.length == 1
-                    ? 'Tienes 1 reserva activa'
-                    : 'Tienes ${proximas.length} reservas activas',
-                trailing: const ProfileMenuButton(),
-              ),
-              if (state.errorMessage != null) ...[
-                ErrorBanner(
-                  message: state.errorMessage!,
-                  onRetry: controller.cargar,
-                ),
-                const SizedBox(height: LavaderoSpacing.md),
-              ],
-              if (state.isLoading && state.reservas.isEmpty)
-                const SkeletonList.inline(itemCount: 4)
-              else if (state.reservas.isEmpty) ...[
-                const SizedBox(height: LavaderoSpacing.xl),
-                EmptyState(
-                  icon: Icons.event_note_outlined,
-                  title: 'Todavía no tienes reservas',
-                  message: 'Cuando reserves un lavado, lo verás aquí.',
-                  actionLabel: 'Reservar un lavado',
-                  onAction: () => ref
-                      .read(clienteTabProvider.notifier)
-                      .ir(ClienteTab.reservar),
-                ),
-              ] else ...[
-                if (proximas.isNotEmpty) ...[
-                  const SectionHeader(title: 'Próximas'),
-                  for (var i = 0; i < proximas.length; i++)
-                    tarjeta(proximas[i], i, historial: false),
-                  const SizedBox(height: LavaderoSpacing.lg),
-                ],
-                if (anteriores.isNotEmpty) ...[
-                  const SectionHeader(title: 'Anteriores'),
-                  for (var i = 0; i < anteriores.length; i++)
-                    tarjeta(
-                      anteriores[i],
-                      proximas.length + i,
-                      historial: true,
-                    ),
-                ],
-              ],
-            ],
+            itemCount: filas.length,
+            itemBuilder: (context, i) => filas[i],
           ),
         ),
       ),
@@ -242,9 +239,9 @@ class _ReservaCard extends StatelessWidget {
                     ),
                     icon: cancelando
                         ? InlineSpinner(
- size: LavaderoSizes.iconSm,
- color: scheme.error,
- )
+                            size: LavaderoSizes.iconSm,
+                            color: scheme.error,
+                          )
                         : const Icon(
                             Icons.close_rounded,
                             size: LavaderoSizes.iconMd,

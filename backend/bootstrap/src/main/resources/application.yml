@@ -21,6 +21,13 @@ server:
   # X-Forwarded-For SOLO si la conexión viene de una red interna. RateLimitFilter
   # depende de esto para no confiar en un header que cualquier cliente puede falsear.
   forward-headers-strategy: native
+  # Comprime las respuestas JSON de más de 1 KB (listas de reservas, reportes):
+  # suelen bajar a una cuarta parte. Las respuestas pequeñas no se comprimen
+  # porque ahí la compresión cuesta más de lo que ahorra.
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json,text/plain
+    min-response-size: 1KB
 
 management:
   endpoints:
@@ -43,6 +50,9 @@ sentry:
   traces-sample-rate: 0.1
 
 lavadero:
+  observability:
+    # Peticiones que tarden más que esto dejan un WARN (PeticionesLentasFilter).
+    slow-request-ms: ${LAVADERO_SLOW_REQUEST_MS:500}
   security:
     jwt:
       issuer: lavadero

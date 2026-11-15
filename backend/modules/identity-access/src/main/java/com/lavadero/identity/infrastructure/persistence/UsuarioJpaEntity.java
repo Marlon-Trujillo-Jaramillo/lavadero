@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.Filter;
 
 /**
@@ -53,6 +54,9 @@ public class UsuarioJpaEntity {
   @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
+  // Carga las colecciones de muchas filas en lotes de hasta 50 (un solo SELECT ... IN (...))
+  // en vez de una consulta por fila: evita el N+1 al listar.
+  @BatchSize(size = 50)
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "usuario_rol", joinColumns = @JoinColumn(name = "usuario_id"))
   @Column(name = "rol", nullable = false)

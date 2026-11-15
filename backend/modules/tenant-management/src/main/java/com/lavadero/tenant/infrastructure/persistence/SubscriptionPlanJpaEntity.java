@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "subscription_plan")
@@ -33,6 +34,9 @@ public class SubscriptionPlanJpaEntity {
   @Column(name = "max_empleados", nullable = false)
   private int maxEmpleados;
 
+  // Carga las colecciones de muchas filas en lotes de hasta 50 (un solo SELECT ... IN (...))
+  // en vez de una consulta por fila: evita el N+1 al listar.
+  @BatchSize(size = 50)
   @ElementCollection
   @CollectionTable(
       name = "subscription_plan_feature",

@@ -20,6 +20,7 @@ A Spring Boot modular monolith plus two Flutter apps, designed, built and operat
 - **Security**: JWT access tokens + rotating refresh tokens with reuse detection (a reused token revokes the whole chain), Argon2 password hashing, role-based access (`SUPER_ADMIN`, `ADMIN_TENANT`, `EMPLEADO`, `CLIENTE`), and data scoped per branch for employees.
 - **Observability**: Sentry on the backend and in both Flutter apps; Spring Boot Actuator health checks.
 - **Database migrations**: Flyway, versioned per module, with indexes for every foreign key and lookup column.
+- **Performance review**: 30 techniques checked one by one against the code ([spec 007](docs/specs/007-rendimiento.md)). Measured and fixed an N+1 (9 → 2 SQL statements when listing employees, guarded by a test), gzip responses, slow-request logging, lazy lists and unused dependencies removed.
 - **CI**: GitHub Actions runs the full backend build (unit, architecture and Testcontainers RLS tests) plus `flutter analyze` and `flutter test` for the apps and the shared package.
 
 ## Architecture
