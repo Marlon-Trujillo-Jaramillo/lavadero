@@ -110,6 +110,33 @@ public class GlobalExceptionHandler {
     return build(HttpStatus.BAD_REQUEST, message, request);
   }
 
+  /**
+   * Los agregados protegen sus reglas con {@code IllegalStateException} (transición inválida, p.
+   * ej. completar una reserva que no ha iniciado) e {@code IllegalArgumentException} (dato
+   * inválido, p. ej. una placa mal escrita). Antes caían en el 500 genérico. Solo se traducen las
+   * que nacen en el dominio de Lavadero: las de librerías siguen siendo errores internos y no
+   * exponen su mensaje.
+   */
+  @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
+  public ResponseEntity<ErrorResponse> handleReglaDeDominio(
+      RuntimeException ex, HttpServletRequest request) {
+    if (!lanzadaPorElDominio(ex)) {
+      return handleUnexpected(ex, request);
+    }
+    HttpStatus status =
+        ex instanceof IllegalStateException ? HttpStatus.CONFLICT : HttpStatus.BAD_REQUEST;
+    return build(status, ex.getMessage(), request);
+  }
+
+  static boolean lanzadaPorElDominio(Throwable ex) {
+    StackTraceElement[] trace = ex.getStackTrace();
+    if (trace.length == 0) {
+      return false;
+    }
+    String origen = trace[0].getClassName();
+    return origen.startsWith("com.lavadero.") && origen.contains(".domain.");
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
     log.error("Error interno no controlado en {}", request.getRequestURI(), ex);

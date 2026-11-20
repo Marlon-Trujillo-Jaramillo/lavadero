@@ -14,6 +14,8 @@ class Reserva {
     required this.precio,
     required this.moneda,
     required this.estado,
+    this.vehiculoId,
+    this.vehiculoPlaca,
   });
 
   factory Reserva.fromJson(Map<String, dynamic> json) => Reserva(
@@ -27,6 +29,8 @@ class Reserva {
     precio: (json['precio'] as num).toDouble(),
     moneda: json['moneda'] as String,
     estado: ReservaEstado.fromWireValue(json['estado'] as String),
+    vehiculoId: json['vehiculoId'] as String?,
+    vehiculoPlaca: json['vehiculoPlaca'] as String?,
   );
 
   final String id;
@@ -39,6 +43,10 @@ class Reserva {
   final double precio;
   final String moneda;
   final ReservaEstado estado;
+
+  /// Vehículo elegido al reservar (opcional) y su placa congelada en ese momento.
+  final String? vehiculoId;
+  final String? vehiculoPlaca;
 
   @override
   bool operator ==(Object other) =>
@@ -53,7 +61,9 @@ class Reserva {
           other.duracionEstimadaMinutos == duracionEstimadaMinutos &&
           other.precio == precio &&
           other.moneda == moneda &&
-          other.estado == estado;
+          other.estado == estado &&
+          other.vehiculoId == vehiculoId &&
+          other.vehiculoPlaca == vehiculoPlaca;
 
   @override
   int get hashCode => Object.hash(
@@ -67,6 +77,8 @@ class Reserva {
     precio,
     moneda,
     estado,
+    vehiculoId,
+    vehiculoPlaca,
   );
 
   @override

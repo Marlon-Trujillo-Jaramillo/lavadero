@@ -56,6 +56,12 @@ public class ReservaJpaEntity {
   @Column(nullable = false)
   private String estado;
 
+  @Column(name = "vehiculo_id")
+  private UUID vehiculoId;
+
+  @Column(name = "vehiculo_placa")
+  private String vehiculoPlaca;
+
   protected ReservaJpaEntity() {}
 
   public ReservaJpaEntity(
@@ -69,7 +75,9 @@ public class ReservaJpaEntity {
       int duracionEstimadaMinutos,
       BigDecimal precio,
       String moneda,
-      String estado) {
+      String estado,
+      UUID vehiculoId,
+      String vehiculoPlaca) {
     this.id = id;
     this.tenantId = tenantId;
     this.sucursalId = sucursalId;
@@ -81,6 +89,8 @@ public class ReservaJpaEntity {
     this.precio = precio;
     this.moneda = moneda;
     this.estado = estado;
+    this.vehiculoId = vehiculoId;
+    this.vehiculoPlaca = vehiculoPlaca;
   }
 
   public UUID getId() {
@@ -125,5 +135,13 @@ public class ReservaJpaEntity {
 
   public String getEstado() {
     return estado;
+  }
+
+  public UUID getVehiculoId() {
+    return vehiculoId;
+  }
+
+  public String getVehiculoPlaca() {
+    return vehiculoPlaca;
   }
 }

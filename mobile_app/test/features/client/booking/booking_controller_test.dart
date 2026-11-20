@@ -9,9 +9,12 @@ class MockCatalogRepository extends Mock implements CatalogRepository {}
 
 class MockSchedulingRepository extends Mock implements SchedulingRepository {}
 
+class MockVehiculoRepository extends Mock implements VehiculoRepository {}
+
 void main() {
   late MockCatalogRepository catalogRepository;
   late MockSchedulingRepository schedulingRepository;
+  late MockVehiculoRepository vehiculoRepository;
   late ProviderContainer container;
 
   const servicio = ServiceItem(
@@ -30,10 +33,13 @@ void main() {
     when(() => catalogRepository.listarActivos()).thenAnswer((_) async => [servicio]);
     when(() => schedulingRepository.listarSucursales()).thenAnswer((_) async => [sucursal]);
 
+    vehiculoRepository = MockVehiculoRepository();
+    when(() => vehiculoRepository.misVehiculos()).thenAnswer((_) async => []);
     container = ProviderContainer(
       overrides: [
         catalogRepositoryProvider.overrideWithValue(catalogRepository),
         schedulingRepositoryProvider.overrideWithValue(schedulingRepository),
+        vehiculoRepositoryProvider.overrideWithValue(vehiculoRepository),
       ],
     );
     addTearDown(container.dispose);
@@ -104,4 +110,52 @@ void main() {
     expect(state.errorMessage, 'No hay cupo disponible');
     expect(state.reservaCreada, isNull);
   });
+
+  test('reservar() envía el vehículo elegido', () async {
+    final inicio = DateTime.utc(2026, 8, 1, 10);
+    when(
+      () => schedulingRepository.crear(
+        sucursalId: any(named: 'sucursalId'),
+        servicioId: any(named: 'servicioId'),
+        fechaHoraInicio: any(named: 'fechaHoraInicio'),
+        vehiculoId: any(named: 'vehiculoId'),
+      ),
+    ).thenAnswer(
+      (_) async => Reserva(
+        id: 'r1',
+        sucursalId: 'suc1',
+        servicioId: 's1',
+        clienteId: 'c1',
+        fechaHoraInicio: inicio,
+        fechaHoraFin: inicio.add(const Duration(minutes: 20)),
+        duracionEstimadaMinutos: 20,
+        precio: 15000,
+        moneda: 'COP',
+        estado: ReservaEstado.pendiente,
+        vehiculoId: 'v-1',
+        vehiculoPlaca: 'ABC123',
+      ),
+    );
+
+    await container.read(bookingControllerProvider.notifier).reservar(
+          sucursalId: 'suc1',
+          servicioId: 's1',
+          fechaHoraInicio: inicio,
+          vehiculoId: 'v-1',
+        );
+
+    verify(
+      () => schedulingRepository.crear(
+        sucursalId: 'suc1',
+        servicioId: 's1',
+        fechaHoraInicio: inicio,
+        vehiculoId: 'v-1',
+      ),
+    ).called(1);
+    expect(
+      container.read(bookingControllerProvider).reservaCreada?.vehiculoPlaca,
+      'ABC123',
+    );
+  });
 }
+
