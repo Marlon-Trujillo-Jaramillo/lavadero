@@ -14,6 +14,7 @@ library lavadero_core;
 export 'src/auth/auth.dart';
 export 'src/billing/billing.dart';
 export 'src/catalog/catalog.dart';
+export 'src/crm/crm.dart';
 export 'src/format/formato.dart';
 export 'src/identity/identity.dart';
 export 'src/models/models.dart';

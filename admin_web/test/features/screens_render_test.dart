@@ -25,6 +25,8 @@ class MockTenantRepository extends Mock implements TenantRepository {}
 
 class MockPagoRepository extends Mock implements PagoRepository {}
 
+class MockCrmRepository extends Mock implements CrmRepository {}
+
 /// Pinta cada pantalla del panel con datos de ejemplo, en ancho de escritorio y en angosto, para
 /// detectar errores de layout (overflow, viewports sin alto, intrínsecos) que los tests de
 /// controller no ven.
@@ -100,8 +102,12 @@ void main() {
   late MockEmpleadoRepository empleados;
   late MockTenantRepository tenants;
   late MockPagoRepository pagos;
+  late MockCrmRepository crm;
 
-  setUpAll(() => registerFallbackValue(DateTime(2026)));
+  setUpAll(() {
+    registerFallbackValue(DateTime(2026));
+    registerFallbackValue(OrdenClientes.ultimaVisita);
+  });
 
   setUp(() {
     scheduling = MockSchedulingRepository();
@@ -109,6 +115,41 @@ void main() {
     empleados = MockEmpleadoRepository();
     tenants = MockTenantRepository();
     pagos = MockPagoRepository();
+    crm = MockCrmRepository();
+    when(
+      () => crm.clientes(
+        segmento: any(named: 'segmento'),
+        busqueda: any(named: 'busqueda'),
+        orden: any(named: 'orden'),
+        pagina: any(named: 'pagina'),
+        tamano: any(named: 'tamano'),
+      ),
+    ).thenAnswer(
+      (_) async => PaginaClientes(
+        clientes: [
+          ClienteCrm(
+            id: 'c1',
+            nombre: 'Laura Ríos con un nombre bastante largo para la fila',
+            email: 'laura.rios.con.correo.largo@example.com',
+            visitas: 7,
+            gastoTotal: 315000,
+            moneda: 'COP',
+            primeraVisita: hoy.subtract(const Duration(days: 120)),
+            ultimaVisita: hoy.subtract(const Duration(days: 75)),
+            vehiculosActivos: 2,
+            segmento: SegmentoCliente.enRiesgo,
+          ),
+        ],
+        total: 40,
+        pagina: 0,
+        tamano: 25,
+        porSegmento: const {
+          SegmentoCliente.enRiesgo: 12,
+          SegmentoCliente.frecuente: 8,
+          SegmentoCliente.nuevo: 20,
+        },
+      ),
+    );
     when(() => scheduling.listarSucursales()).thenAnswer((_) async => const [sucursal]);
     when(
       () => scheduling.agendaDelDia(
@@ -176,6 +217,7 @@ void main() {
           empleadoRepositoryProvider.overrideWithValue(empleados),
           tenantRepositoryProvider.overrideWithValue(tenants),
           pagoRepositoryProvider.overrideWithValue(pagos),
+          crmRepositoryProvider.overrideWithValue(crm),
           abrirUrlExternaProvider.overrideWithValue((_) async => true),
         ],
         child: MaterialApp(
@@ -199,7 +241,7 @@ void main() {
     'reportes': (const ReportsScreen(), '7 días'),
     'tenants': (const TenantAdminScreen(), 'Planes de suscripción'),
     'suscripción': (const SubscriptionScreen(), 'Pagar con Wompi'),
-    'crm': (const CrmScreen(), 'Próximamente'),
+    'crm': (const CrmScreen(), 'Clientes en riesgo'),
   };
 
   for (final pantalla in pantallas.entries) {
@@ -225,6 +267,15 @@ void main() {
       when(() => tenants.listarPlanesDisponibles()).thenAnswer((_) => nunca);
       when(() => tenants.search(any())).thenAnswer((_) => nunca);
       when(() => pagos.listar()).thenAnswer((_) => nunca);
+      when(
+        () => crm.clientes(
+          segmento: any(named: 'segmento'),
+          busqueda: any(named: 'busqueda'),
+          orden: any(named: 'orden'),
+          pagina: any(named: 'pagina'),
+          tamano: any(named: 'tamano'),
+        ),
+      ).thenAnswer((_) => Completer<PaginaClientes>().future);
 
       await pintar(tester, pantalla.value.$1, tamanios['escritorio']!);
       expect(tester.takeException(), isNull);
@@ -242,10 +293,19 @@ void main() {
       when(() => tenants.listarPlanesDisponibles()).thenThrow(fallo);
       when(() => tenants.search(any())).thenThrow(fallo);
       when(() => pagos.listar()).thenThrow(fallo);
+      when(
+        () => crm.clientes(
+          segmento: any(named: 'segmento'),
+          busqueda: any(named: 'busqueda'),
+          orden: any(named: 'orden'),
+          pagina: any(named: 'pagina'),
+          tamano: any(named: 'tamano'),
+        ),
+      ).thenThrow(fallo);
 
       await pintar(tester, pantalla.value.$1, tamanios['angosto']!);
       expect(tester.takeException(), isNull);
-      if (pantalla.key != 'crm') expect(find.text('Servidor caído'), findsWidgets);
+      expect(find.text('Servidor caído'), findsWidgets);
     });
   }
 
