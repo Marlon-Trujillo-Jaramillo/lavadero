@@ -46,6 +46,10 @@ final catalogRepositoryProvider = Provider<CatalogRepository>((ref) {
   return CatalogRepository(dio: ref.watch(apiClientProvider).dio);
 });
 
+final crmRepositoryProvider = Provider<CrmRepository>((ref) {
+  return CrmRepository(dio: ref.watch(apiClientProvider).dio);
+});
+
 final empleadoRepositoryProvider = Provider<EmpleadoRepository>((ref) {
   return EmpleadoRepository(dio: ref.watch(apiClientProvider).dio);
 });

@@ -65,6 +65,7 @@ modules/scheduling/src/main/java/com/lavadero/scheduling/
 | Catalog | Services with prices and durations, managed by the owner |
 | Scheduling | Customers book by branch and time slot; employees see and run the day's agenda |
 | My vehicles | Customers save their cars once and pick one when booking; employees see the plate in their agenda ([spec 009](docs/specs/009-mis-vehiculos.md)) |
+| Customer CRM | Owners see each customer's visits, spend and vehicles, and who is **at risk** of churning based on their own visit rhythm. One click drafts a win-back email ([spec 010](docs/specs/010-crm-clientes.md)) |
 | Service checklist and incidents | Employees go through a checklist per service and report incidents |
 | Dashboard and reports | Sales and booking reports for the owner |
 | Plans and subscriptions | SaaS plans paid with Wompi |

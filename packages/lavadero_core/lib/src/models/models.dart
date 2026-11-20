@@ -2,6 +2,7 @@ export 'auth_response.dart';
 export 'auth_tokens.dart';
 export 'checklist_item.dart';
 export 'checkout_pago.dart';
+export 'cliente_crm.dart';
 export 'empleado.dart';
 export 'incidencia.dart';
 export 'incidencia_categoria.dart';
