@@ -6,6 +6,8 @@ import 'package:admin_web/features/branches/branches_screen.dart';
 import 'package:admin_web/features/catalog_pricing/catalog_pricing_screen.dart';
 import 'package:admin_web/features/crm/crm_screen.dart';
 import 'package:admin_web/features/employees/employees_screen.dart';
+import 'package:admin_web/features/promotions/application/promotions_controller.dart';
+import 'package:admin_web/features/promotions/promotions_screen.dart';
 import 'package:admin_web/features/reports/reports_screen.dart';
 import 'package:admin_web/features/subscription/subscription_screen.dart';
 import 'package:admin_web/features/tenant_admin/tenant_admin_screen.dart';
@@ -26,6 +28,8 @@ class MockTenantRepository extends Mock implements TenantRepository {}
 class MockPagoRepository extends Mock implements PagoRepository {}
 
 class MockCrmRepository extends Mock implements CrmRepository {}
+
+class MockPromocionRepository extends Mock implements PromocionRepository {}
 
 /// Pinta cada pantalla del panel con datos de ejemplo, en ancho de escritorio y en angosto, para
 /// detectar errores de layout (overflow, viewports sin alto, intrínsecos) que los tests de
@@ -103,6 +107,7 @@ void main() {
   late MockTenantRepository tenants;
   late MockPagoRepository pagos;
   late MockCrmRepository crm;
+  late MockPromocionRepository promociones;
 
   setUpAll(() {
     registerFallbackValue(DateTime(2026));
@@ -115,6 +120,29 @@ void main() {
     empleados = MockEmpleadoRepository();
     tenants = MockTenantRepository();
     pagos = MockPagoRepository();
+    promociones = MockPromocionRepository();
+    when(() => promociones.listar()).thenAnswer(
+      (_) async => [
+        Promocion(
+          id: 'p1',
+          nombre: 'Mañanas de semana con un nombre largo de campaña',
+          tipo: TipoPromocion.horario,
+          tipoDescuento: TipoDescuento.porcentaje,
+          valorDescuento: 20,
+          dias: DiaSemana.values,
+          horaDesde: '08:00:00',
+          horaHasta: '11:00:00',
+          vigenteDesde: hoy.subtract(const Duration(days: 3)),
+          vigenteHasta: hoy.add(const Duration(days: 30)),
+          usos: 120,
+          activa: true,
+          reservas: 120,
+          completadas: 110,
+          ingresos: 4950000,
+          descuentoOtorgado: 1237500,
+        ),
+      ],
+    );
     crm = MockCrmRepository();
     when(
       () => crm.clientes(
@@ -218,6 +246,8 @@ void main() {
           tenantRepositoryProvider.overrideWithValue(tenants),
           pagoRepositoryProvider.overrideWithValue(pagos),
           crmRepositoryProvider.overrideWithValue(crm),
+          promocionRepositoryProvider.overrideWithValue(promociones),
+          puedeGestionarPromocionesProvider.overrideWithValue(true),
           abrirUrlExternaProvider.overrideWithValue((_) async => true),
         ],
         child: MaterialApp(
@@ -242,6 +272,7 @@ void main() {
     'tenants': (const TenantAdminScreen(), 'Planes de suscripción'),
     'suscripción': (const SubscriptionScreen(), 'Pagar con Wompi'),
     'crm': (const CrmScreen(), 'Clientes en riesgo'),
+    'promociones': (const PromotionsScreen(), 'Nueva promoción'),
   };
 
   for (final pantalla in pantallas.entries) {
@@ -267,6 +298,7 @@ void main() {
       when(() => tenants.listarPlanesDisponibles()).thenAnswer((_) => nunca);
       when(() => tenants.search(any())).thenAnswer((_) => nunca);
       when(() => pagos.listar()).thenAnswer((_) => nunca);
+      when(() => promociones.listar()).thenAnswer((_) => nunca);
       when(
         () => crm.clientes(
           segmento: any(named: 'segmento'),
@@ -293,6 +325,7 @@ void main() {
       when(() => tenants.listarPlanesDisponibles()).thenThrow(fallo);
       when(() => tenants.search(any())).thenThrow(fallo);
       when(() => pagos.listar()).thenThrow(fallo);
+      when(() => promociones.listar()).thenThrow(fallo);
       when(
         () => crm.clientes(
           segmento: any(named: 'segmento'),

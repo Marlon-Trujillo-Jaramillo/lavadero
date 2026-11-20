@@ -7,6 +7,7 @@ export 'empleado.dart';
 export 'incidencia.dart';
 export 'incidencia_categoria.dart';
 export 'pago.dart';
+export 'promocion.dart';
 export 'reserva.dart';
 export 'reserva_estado.dart';
 export 'resumen_ventas.dart';

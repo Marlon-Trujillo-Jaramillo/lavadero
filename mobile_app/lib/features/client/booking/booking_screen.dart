@@ -81,6 +81,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   Sucursal? _sucursalEfectiva(List<Sucursal> sucursales) =>
       _sucursal ?? (sucursales.length == 1 ? sucursales.first : null);
 
+  void _cotizar(ServiceItem? servicio, DateTime? horario) {
+    ref
+        .read(bookingControllerProvider.notifier)
+        .cotizar(servicioId: servicio?.id, fechaHoraInicio: horario);
+  }
+
   void _confirmar(
     ServiceItem servicio,
     Sucursal sucursal,
@@ -116,6 +122,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final state = ref.watch(bookingControllerProvider);
     final servicio = ref.watch(servicioElegidoProvider);
     final controller = ref.read(bookingControllerProvider.notifier);
+
+    // El precio depende del servicio y la hora (precios por horario, cupón).
+    ref.listen(servicioElegidoProvider, (previous, next) {
+      if (previous?.id != next?.id) _cotizar(next, _horario);
+    });
 
     // Al confirmar, "Mis reservas" (y el héroe del inicio) se refrescan.
     ref.listen(bookingControllerProvider, (previous, next) {
@@ -156,6 +167,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ? _ResumenBar(
               servicio: servicio,
               horario: _horario,
+              cotizacion: state.cotizacion,
               isSubmitting: state.isSubmitting,
               onConfirmar:
                   servicio != null && sucursal != null && _horario != null
@@ -237,10 +249,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           ahora: ahora,
                           seleccionado:
                               _soloFecha(ahora).add(Duration(days: i)) == _dia,
-                          onTap: () => setState(() {
-                            _dia = _soloFecha(ahora).add(Duration(days: i));
-                            _horario = null;
-                          }),
+                          onTap: () {
+                            setState(() {
+                              _dia = _soloFecha(ahora).add(Duration(days: i));
+                              _horario = null;
+                            });
+                            _cotizar(servicio, null);
+                          },
                         ),
                       ],
                     ],
@@ -267,7 +282,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               label: Text(Formato.hora(h)),
                               showCheckmark: false,
                               selected: h == _horario,
-                              onSelected: (_) => setState(() => _horario = h),
+                              onSelected: (_) {
+                                setState(() => _horario = h);
+                                _cotizar(servicio, h);
+                              },
                             ),
                         ],
                       ),
@@ -301,6 +319,31 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   seleccionadoId: vehiculoId,
                   onElegir: _elegirVehiculo,
                   onAgregar: _agregarVehiculo,
+                ),
+              ),
+              _Paso(
+                numero: state.sucursales.length > 1 ? 6 : 5,
+                titulo: 'Cupón (opcional)',
+                completo: state.cupon != null,
+                child: _CuponPaso(
+                  cupon: state.cupon,
+                  error: state.cuponError,
+                  isAplicando: state.isAplicandoCupon,
+                  // El backend valida el cupón contra un servicio y una hora.
+                  habilitado: servicio != null && _horario != null,
+                  descuento: state.cupon != null &&
+                          state.cotizacion?.tieneDescuento == true
+                      ? state.cotizacion
+                      : null,
+                  onAplicar: (codigo) => controller.aplicarCupon(
+                    codigo: codigo,
+                    servicioId: servicio!.id,
+                    fechaHoraInicio: _horario!,
+                  ),
+                  onQuitar: () => controller.quitarCupon(
+                    servicioId: servicio?.id,
+                    fechaHoraInicio: _horario,
+                  ),
                 ),
               ),
             ],
@@ -660,12 +703,14 @@ class _ResumenBar extends StatelessWidget {
   const _ResumenBar({
     required this.servicio,
     required this.horario,
+    required this.cotizacion,
     required this.isSubmitting,
     required this.onConfirmar,
   });
 
   final ServiceItem? servicio;
   final DateTime? horario;
+  final Cotizacion? cotizacion;
   final bool isSubmitting;
   final VoidCallback? onConfirmar;
 
@@ -673,8 +718,11 @@ class _ResumenBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final conDescuento = cotizacion?.tieneDescuento == true ? cotizacion : null;
     final detalle = horario == null
         ? 'Elige día y hora'
+        : conDescuento != null
+        ? conDescuento.promocionNombre!
         : '${Formato.diaRelativo(horario!)} · ${Formato.hora(horario!)}';
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -695,19 +743,57 @@ class _ResumenBar extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    servicio?.precioTexto ?? 'Total',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontFeatures: LavaderoTypography.tabular,
-                    ),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    spacing: LavaderoSpacing.sm,
+                    children: [
+                      Text(
+                        conDescuento != null
+                            ? Formato.moneda(
+                                conDescuento.precioFinal,
+                                conDescuento.moneda,
+                              )
+                            : servicio?.precioTexto ?? 'Total',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontFeatures: LavaderoTypography.tabular,
+                        ),
+                      ),
+                      if (conDescuento != null)
+                        Text(
+                          Formato.moneda(
+                            conDescuento.precioLista,
+                            conDescuento.moneda,
+                          ),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                    ],
                   ),
-                  Text(
-                    detalle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    children: [
+                      if (conDescuento != null) ...[
+                        const Icon(
+                          Icons.local_offer_rounded,
+                          size: LavaderoSizes.iconSm,
+                          color: LavaderoColors.success,
+                        ),
+                        const SizedBox(width: LavaderoSpacing.xs),
+                      ],
+                      Flexible(
+                        child: Text(
+                          detalle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: conDescuento != null
+                                ? LavaderoColors.success
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -814,6 +900,13 @@ class _ConfirmacionReserva extends StatelessWidget {
                           '${Formato.hora(reserva.fechaHoraFin.toLocal())}',
                     ),
                     const Divider(height: LavaderoSpacing.lg),
+                    if (reserva.descuento > 0)
+                      _Detalle(
+                        icon: Icons.local_offer_rounded,
+                        label: 'Descuento',
+                        valor:
+                            '−${Formato.moneda(reserva.descuento, reserva.moneda)}',
+                      ),
                     _Detalle(
                       icon: Icons.payments_rounded,
                       label: 'Total',
@@ -945,6 +1038,133 @@ class _VehiculoOpciones extends StatelessWidget {
           label: Text(vehiculos.isEmpty ? 'Agregar mi vehículo' : 'Agregar'),
           onPressed: onAgregar,
         ),
+      ],
+    );
+  }
+}
+
+/// Campo de cupón: oculto detrás de "¿Tienes un cupón?" para no distraer a
+/// quien no tiene; ya aplicado, muestra el código y cuánto descuenta.
+class _CuponPaso extends StatefulWidget {
+  const _CuponPaso({
+    required this.cupon,
+    required this.error,
+    required this.isAplicando,
+    required this.habilitado,
+    required this.descuento,
+    required this.onAplicar,
+    required this.onQuitar,
+  });
+
+  final String? cupon;
+  final String? error;
+  final bool isAplicando;
+  final bool habilitado;
+  final Cotizacion? descuento;
+  final ValueChanged<String> onAplicar;
+  final VoidCallback onQuitar;
+
+  @override
+  State<_CuponPaso> createState() => _CuponPasoState();
+}
+
+class _CuponPasoState extends State<_CuponPaso> {
+  final _controller = TextEditingController();
+  bool _abierto = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _aplicar() {
+    final codigo = _controller.text.trim();
+    if (codigo.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    widget.onAplicar(codigo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cupon = widget.cupon;
+    if (cupon != null) {
+      final descuento = widget.descuento;
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: InputChip(
+          avatar: const Icon(
+            Icons.local_offer_rounded,
+            size: LavaderoSizes.iconSm,
+            color: LavaderoColors.success,
+          ),
+          label: Text(
+            descuento == null
+                ? cupon
+                : '$cupon · −${Formato.moneda(descuento.descuento, descuento.moneda)}',
+          ),
+          onDeleted: () {
+            _controller.clear();
+            widget.onQuitar();
+          },
+          deleteButtonTooltipMessage: 'Quitar cupón',
+        ),
+      );
+    }
+    if (!_abierto) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => setState(() => _abierto = true),
+          icon: const Icon(Icons.confirmation_number_outlined),
+          label: const Text('¿Tienes un cupón?'),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                textCapitalization: TextCapitalization.characters,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _aplicar(),
+                maxLength: 20,
+                decoration: InputDecoration(
+                  hintText: 'Código del cupón',
+                  counterText: '',
+                  isDense: true,
+                  errorText: widget.error,
+                  errorMaxLines: 2,
+                  helperText: widget.habilitado
+                      ? null
+                      : 'Elige servicio y hora para aplicarlo',
+                ),
+              ),
+            ),
+            const SizedBox(width: LavaderoSpacing.sm),
+            LoadingButton(
+              isLoading: widget.isAplicando,
+              onPressed: widget.habilitado ? _aplicar : null,
+              child: const Text('Aplicar'),
+            ),
+          ],
+        ),
+        if (widget.error == null && widget.habilitado)
+          Padding(
+            padding: const EdgeInsets.only(top: LavaderoSpacing.xs),
+            child: Text(
+              'Si tu hora ya tiene una promoción, se aplica la que más '
+              'descuenta.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
       ],
     );
   }
