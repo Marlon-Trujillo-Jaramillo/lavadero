@@ -1,6 +1,7 @@
 package com.lavadero.scheduling.infrastructure.persistence;
 
 import com.lavadero.scheduling.domain.model.Placa;
+import com.lavadero.scheduling.domain.model.PromocionAplicada;
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.ReservaEstado;
 import com.lavadero.scheduling.domain.model.ResumenVentas;
@@ -127,7 +128,9 @@ class ReservaRepositoryAdapter implements ReservaRepository {
             reserva.getPrecio().moneda().getCurrencyCode(),
             reserva.getEstado().name(),
             reserva.getVehiculo().map(VehiculoReservado::vehiculoId).orElse(null),
-            reserva.getVehiculo().map(v -> v.placa().valor()).orElse(null));
+            reserva.getVehiculo().map(v -> v.placa().valor()).orElse(null),
+            reserva.getPromocion().map(PromocionAplicada::promocionId).orElse(null),
+            reserva.getPromocion().map(p -> p.precioLista().monto()).orElse(null));
     jpaRepository.save(entity);
     return reserva;
   }
@@ -145,6 +148,10 @@ class ReservaRepositoryAdapter implements ReservaRepository {
         ReservaEstado.valueOf(entity.getEstado()),
         entity.getVehiculoId() == null
             ? null
-            : new VehiculoReservado(entity.getVehiculoId(), new Placa(entity.getVehiculoPlaca())));
+            : new VehiculoReservado(entity.getVehiculoId(), new Placa(entity.getVehiculoPlaca())),
+        entity.getPromocionId() == null
+            ? null
+            : new PromocionAplicada(
+                entity.getPromocionId(), Money.de(entity.getPrecioLista(), entity.getMoneda())));
   }
 }

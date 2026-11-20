@@ -6,7 +6,11 @@ import com.lavadero.scheduling.domain.model.Placa;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 class GlobalExceptionHandlerTest {
 
@@ -58,5 +62,33 @@ class GlobalExceptionHandlerTest {
       return (T) e;
     }
     throw new AssertionError("se esperaba una excepción");
+  }
+
+  @Test
+  void unQueryParamMalFormadoOFaltanteEsUn400QueNombraElParametro() {
+    var malFormado =
+        new MethodArgumentTypeMismatchException("abc", UUID.class, "servicioId", null, null);
+    var faltante = new MissingServletRequestParameterException("fechaHoraInicio", "Instant");
+
+    var r1 = handler.handleParametroInvalido(malFormado, request);
+    var r2 = handler.handleParametroFaltante(faltante, request);
+
+    assertThat(r1.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(r1.getBody().message()).contains("servicioId");
+    assertThat(r2.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(r2.getBody().message()).contains("fechaHoraInicio");
+  }
+
+  @Test
+  void unCuerpoIlegibleEsUn400SinElDetalleDelParser() {
+    var ex =
+        new HttpMessageNotReadableException(
+            "JSON parse error: Text '25:00' could not be parsed",
+            new MockHttpInputMessage(new byte[0]));
+
+    var respuesta = handler.handleCuerpoIlegible(ex, request);
+
+    assertThat(respuesta.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThat(respuesta.getBody().message()).doesNotContain("25:00");
   }
 }

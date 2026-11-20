@@ -62,6 +62,12 @@ public class ReservaJpaEntity {
   @Column(name = "vehiculo_placa")
   private String vehiculoPlaca;
 
+  @Column(name = "promocion_id")
+  private UUID promocionId;
+
+  @Column(name = "precio_lista")
+  private BigDecimal precioLista;
+
   protected ReservaJpaEntity() {}
 
   public ReservaJpaEntity(
@@ -77,7 +83,9 @@ public class ReservaJpaEntity {
       String moneda,
       String estado,
       UUID vehiculoId,
-      String vehiculoPlaca) {
+      String vehiculoPlaca,
+      UUID promocionId,
+      BigDecimal precioLista) {
     this.id = id;
     this.tenantId = tenantId;
     this.sucursalId = sucursalId;
@@ -91,6 +99,8 @@ public class ReservaJpaEntity {
     this.estado = estado;
     this.vehiculoId = vehiculoId;
     this.vehiculoPlaca = vehiculoPlaca;
+    this.promocionId = promocionId;
+    this.precioLista = precioLista;
   }
 
   public UUID getId() {
@@ -143,5 +153,13 @@ public class ReservaJpaEntity {
 
   public String getVehiculoPlaca() {
     return vehiculoPlaca;
+  }
+
+  public UUID getPromocionId() {
+    return promocionId;
+  }
+
+  public BigDecimal getPrecioLista() {
+    return precioLista;
   }
 }

@@ -1,6 +1,7 @@
 package com.lavadero.scheduling.application.usecase;
 
 import com.lavadero.scheduling.application.dto.ReservaDto;
+import com.lavadero.scheduling.domain.model.PromocionAplicada;
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.VehiculoReservado;
 
@@ -24,6 +25,8 @@ final class ReservaMapper {
         reserva.getPrecio().moneda().getCurrencyCode(),
         reserva.getEstado().name(),
         reserva.getVehiculo().map(VehiculoReservado::vehiculoId).orElse(null),
-        reserva.getVehiculo().map(v -> v.placa().valor()).orElse(null));
+        reserva.getVehiculo().map(v -> v.placa().valor()).orElse(null),
+        reserva.getPromocion().map(PromocionAplicada::promocionId).orElse(null),
+        reserva.getPromocion().map(p -> p.precioLista().monto()).orElse(null));
   }
 }

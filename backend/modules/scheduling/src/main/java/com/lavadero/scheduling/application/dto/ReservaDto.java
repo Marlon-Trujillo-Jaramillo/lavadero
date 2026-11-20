@@ -16,4 +16,6 @@ public record ReservaDto(
     String moneda,
     String estado,
     UUID vehiculoId,
-    String vehiculoPlaca) {}
+    String vehiculoPlaca,
+    UUID promocionId,
+    BigDecimal precioLista) {}

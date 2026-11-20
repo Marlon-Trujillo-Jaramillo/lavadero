@@ -30,6 +30,7 @@ public class Reserva extends AggregateRoot<UUID> {
   private final Money precio;
   private ReservaEstado estado;
   private final VehiculoReservado vehiculo;
+  private final PromocionAplicada promocion;
 
   public Reserva(
       UUID id,
@@ -66,6 +67,36 @@ public class Reserva extends AggregateRoot<UUID> {
       Money precio,
       ReservaEstado estado,
       VehiculoReservado vehiculo) {
+    this(
+        id,
+        tenantId,
+        sucursalId,
+        servicioId,
+        clienteId,
+        fechaHoraInicio,
+        duracionEstimadaMinutos,
+        precio,
+        estado,
+        vehiculo,
+        null);
+  }
+
+  /**
+   * {@code promocion} es opcional. Si viene, {@code precio} es el precio final (ya con el
+   * descuento) y nunca supera el precio de lista.
+   */
+  public Reserva(
+      UUID id,
+      UUID tenantId,
+      UUID sucursalId,
+      UUID servicioId,
+      UUID clienteId,
+      Instant fechaHoraInicio,
+      int duracionEstimadaMinutos,
+      Money precio,
+      ReservaEstado estado,
+      VehiculoReservado vehiculo,
+      PromocionAplicada promocion) {
     super(id);
     this.tenantId = Objects.requireNonNull(tenantId, "tenantId no puede ser nulo");
     this.sucursalId = Objects.requireNonNull(sucursalId, "sucursalId no puede ser nulo");
@@ -80,6 +111,10 @@ public class Reserva extends AggregateRoot<UUID> {
     this.precio = Objects.requireNonNull(precio, "precio no puede ser nulo");
     this.estado = Objects.requireNonNull(estado, "estado no puede ser nulo");
     this.vehiculo = vehiculo;
+    if (promocion != null && precio.monto().compareTo(promocion.precioLista().monto()) > 0) {
+      throw new IllegalArgumentException("El precio con promoción no puede superar el de lista");
+    }
+    this.promocion = promocion;
   }
 
   public static Reserva nueva(
@@ -122,6 +157,34 @@ public class Reserva extends AggregateRoot<UUID> {
         precio,
         ReservaEstado.PENDIENTE,
         vehiculo);
+  }
+
+  public static Reserva nueva(
+      UUID tenantId,
+      UUID sucursalId,
+      UUID servicioId,
+      UUID clienteId,
+      Instant fechaHoraInicio,
+      int duracionEstimadaMinutos,
+      Money precio,
+      VehiculoReservado vehiculo,
+      PromocionAplicada promocion) {
+    return new Reserva(
+        UUID.randomUUID(),
+        tenantId,
+        sucursalId,
+        servicioId,
+        clienteId,
+        fechaHoraInicio,
+        duracionEstimadaMinutos,
+        precio,
+        ReservaEstado.PENDIENTE,
+        vehiculo,
+        promocion);
+  }
+
+  public Optional<PromocionAplicada> getPromocion() {
+    return Optional.ofNullable(promocion);
   }
 
   public Optional<VehiculoReservado> getVehiculo() {

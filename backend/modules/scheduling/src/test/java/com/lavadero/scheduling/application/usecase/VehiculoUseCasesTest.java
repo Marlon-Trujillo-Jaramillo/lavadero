@@ -17,6 +17,7 @@ import com.lavadero.scheduling.domain.model.Placa;
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.TipoVehiculo;
 import com.lavadero.scheduling.domain.model.Vehiculo;
+import com.lavadero.scheduling.domain.repository.PromocionRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.scheduling.domain.repository.VehiculoRepository;
 import com.lavadero.shared.application.exception.NotFoundException;
@@ -114,7 +115,14 @@ class VehiculoUseCasesTest {
                 UUID.randomUUID(), "Lavado", null, 30, new BigDecimal("25000"), "COP", true));
     when(sucursales.execute(any()))
         .thenReturn(new SucursalDto(UUID.randomUUID(), "Principal", null, 2));
-    return new CrearReservaUseCase(reservas, servicios, sucursales, vehiculos);
+    var promociones = mock(PromocionRepository.class);
+    return new CrearReservaUseCase(
+        reservas,
+        servicios,
+        sucursales,
+        vehiculos,
+        promociones,
+        new ResolvedorPromociones(promociones));
   }
 
   private CrearReservaCommand comando(UUID vehiculoId) {

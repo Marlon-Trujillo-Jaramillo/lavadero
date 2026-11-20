@@ -16,6 +16,7 @@ import com.lavadero.scheduling.application.command.ResumenVentasQuery;
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.ReservaEstado;
 import com.lavadero.scheduling.domain.model.ResumenVentas;
+import com.lavadero.scheduling.domain.repository.PromocionRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.shared.application.exception.ForbiddenException;
 import com.lavadero.shared.application.exception.ValidationException;
@@ -103,7 +104,7 @@ class AlcanceSucursalEnUseCasesTest {
         .isInstanceOf(ForbiddenException.class);
     assertThatThrownBy(
             () ->
-                new CancelarReservaUseCase(reservas)
+                new CancelarReservaUseCase(reservas, mock(PromocionRepository.class))
                     .execute(
                         new CancelarReservaCommand(
                             ajena.getId(), UUID.randomUUID(), true, empleado)))
@@ -128,7 +129,7 @@ class AlcanceSucursalEnUseCasesTest {
 
     assertThatThrownBy(
             () ->
-                new CancelarReservaUseCase(reservas)
+                new CancelarReservaUseCase(reservas, mock(PromocionRepository.class))
                     .execute(
                         new CancelarReservaCommand(
                             ajena.getId(), UUID.randomUUID(), true, adminSucursal)))
