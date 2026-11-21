@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -41,7 +40,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Inventario contra Postgres real: sumas atómicas bajo concurrencia, conteo físico, consumo
- * idempotente al completar una reserva (por el evento, en la misma transacción) y RLS.
+ * idempotente al completar una reserva y RLS. El camino completo por el outbox y Kafka está en
+ * {@code ConsumoPorKafkaIntegrationTest}.
  */
 @SpringBootTest(classes = InventoryTestApplication.class)
 @Testcontainers
@@ -69,7 +69,6 @@ class InventarioIntegrationTest {
   @Autowired private RecetaRepository recetas;
   @Autowired private MovimientoRepository movimientos;
   @Autowired private RegistrarConsumoDeReservaUseCase registrarConsumo;
-  @Autowired private ApplicationEventPublisher eventos;
   @Autowired private JdbcTemplate jdbc;
   @Autowired private PlatformTransactionManager transactionManager;
 
@@ -157,38 +156,6 @@ class InventarioIntegrationTest {
               assertThat(m.saldo()).isEqualByComparingTo("60");
               assertThat(m.reservaId()).isEqualTo(evento.reservaId());
             });
-  }
-
-  @Test
-  void elConsumoViajaConLaTransaccionQueCompletoLaReserva() {
-    comoTenant(
-        tenant,
-        () -> {
-          recetas.reemplazar(
-              tenant, servicio, List.of(new LineaReceta(shampoo.getId(), new BigDecimal("40"))));
-          return null;
-        });
-    var completada =
-        new ReservaCompletadaEvent(UUID.randomUUID(), tenant, sucursal, servicio, Instant.now());
-    var revertida =
-        new ReservaCompletadaEvent(UUID.randomUUID(), tenant, sucursal, servicio, Instant.now());
-
-    comoTenant(
-        tenant,
-        () -> {
-          eventos.publishEvent(completada);
-          return null;
-        });
-    TransactionTemplate tx = new TransactionTemplate(transactionManager);
-    tx.executeWithoutResult(
-        status -> {
-          fijarTenant(tenant);
-          eventos.publishEvent(revertida);
-          status.setRollbackOnly(); // la reserva no llegó a completarse
-        });
-
-    // Solo el consumo de la transacción confirmada: el stock arranca en 0 y queda en -40.
-    assertThat(cantidad()).isEqualByComparingTo("-40");
   }
 
   @Test

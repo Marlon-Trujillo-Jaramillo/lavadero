@@ -68,6 +68,7 @@ modules/scheduling/src/main/java/com/lavadero/scheduling/
 | Customer CRM | Owners see each customer's visits, spend and vehicles, and who is **at risk** of churning based on their own visit rhythm. One click drafts a win-back email ([spec 010](docs/specs/010-crm-clientes.md)) |
 | Promotions | Coupons and off-peak pricing that apply automatically by day and hour. The best discount wins (no stacking), usage limits hold under concurrent bookings, and each campaign shows the bookings, revenue and discount it produced ([spec 011](docs/specs/011-promociones.md)) |
 | Inventory | Supplies with stock per branch, restock alerts and a full movement history. Completing a wash deducts the service's recipe automatically through a `ReservaCompletadaEvent`; cost per wash and margin per service ([spec 012](docs/specs/012-inventario.md)) |
+| Events & Kafka | Transactional outbox + relay (`SKIP LOCKED`, exponential backoff) publishing to Kafka with keyed partitions, retries and a dead-letter topic. A local in-process transport runs the same flow without a broker. Tested end to end against real Kafka with Testcontainers ([spec 013](docs/specs/013-eventos-kafka.md)) |
 | Service checklist and incidents | Employees go through a checklist per service and report incidents |
 | Dashboard and reports | Sales and booking reports for the owner |
 | Plans and subscriptions | SaaS plans paid with Wompi |
