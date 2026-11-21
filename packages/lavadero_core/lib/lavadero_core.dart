@@ -17,6 +17,7 @@ export 'src/catalog/catalog.dart';
 export 'src/crm/crm.dart';
 export 'src/format/formato.dart';
 export 'src/identity/identity.dart';
+export 'src/inventario/inventario.dart';
 export 'src/models/models.dart';
 export 'src/network/network.dart';
 export 'src/promociones/promociones.dart';

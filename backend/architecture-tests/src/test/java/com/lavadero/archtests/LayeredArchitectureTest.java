@@ -75,7 +75,10 @@ class LayeredArchitectureTest {
         noClasses()
             .that()
             .resideInAnyPackage(
-                "com.lavadero.tenant..", "com.lavadero.catalog..", "com.lavadero.identity..")
+                "com.lavadero.tenant..",
+                "com.lavadero.catalog..",
+                "com.lavadero.identity..",
+                "com.lavadero.inventory..")
             .should()
             .dependOnClassesThat()
             .resideInAPackage("com.lavadero.scheduling..");
@@ -96,7 +99,10 @@ class LayeredArchitectureTest {
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage(
-                "com.lavadero.tenant..", "com.lavadero.identity..", "com.lavadero.scheduling..");
+                "com.lavadero.tenant..",
+                "com.lavadero.identity..",
+                "com.lavadero.scheduling..",
+                "com.lavadero.inventory..");
     regla.check(clases);
   }
 
@@ -107,7 +113,7 @@ class LayeredArchitectureTest {
    */
   @Test
   void ningunModuloUsaLaInfraestructuraNiLasInterfacesDeOtro() {
-    List<String> modulos = List.of("tenant", "identity", "catalog", "scheduling");
+    List<String> modulos = List.of("tenant", "identity", "catalog", "scheduling", "inventory");
     for (String modulo : modulos) {
       String[] internosDeOtros =
           modulos.stream()
@@ -126,5 +132,25 @@ class LayeredArchitectureTest {
           .resideInAnyPackage(internosDeOtros)
           .check(clases);
     }
+  }
+
+  /**
+   * inventory es una hoja "de abajo hacia arriba": reacciona a eventos de scheduling (vía
+   * `contracts`) y lee precios de catalog, pero ningún módulo depende de él. Quitarlo del build no
+   * debe romper a nadie.
+   */
+  @Test
+  void ningunModuloDependeDeInventory() {
+    noClasses()
+        .that()
+        .resideInAnyPackage(
+            "com.lavadero.tenant..",
+            "com.lavadero.catalog..",
+            "com.lavadero.identity..",
+            "com.lavadero.scheduling..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAPackage("com.lavadero.inventory..")
+        .check(clases);
   }
 }

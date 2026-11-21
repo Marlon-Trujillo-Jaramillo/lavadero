@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":modules:identity-access"))
     implementation(project(":modules:catalog"))
     implementation(project(":modules:scheduling"))
+    implementation(project(":modules:inventory"))
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // Necesario aquí (no solo transitivamente vía los módulos de negocio,

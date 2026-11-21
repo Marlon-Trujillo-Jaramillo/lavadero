@@ -6,6 +6,8 @@ import 'package:admin_web/features/branches/branches_screen.dart';
 import 'package:admin_web/features/catalog_pricing/catalog_pricing_screen.dart';
 import 'package:admin_web/features/crm/crm_screen.dart';
 import 'package:admin_web/features/employees/employees_screen.dart';
+import 'package:admin_web/features/inventory/application/inventory_controller.dart';
+import 'package:admin_web/features/inventory/inventory_screen.dart';
 import 'package:admin_web/features/promotions/application/promotions_controller.dart';
 import 'package:admin_web/features/promotions/promotions_screen.dart';
 import 'package:admin_web/features/reports/reports_screen.dart';
@@ -30,6 +32,8 @@ class MockPagoRepository extends Mock implements PagoRepository {}
 class MockCrmRepository extends Mock implements CrmRepository {}
 
 class MockPromocionRepository extends Mock implements PromocionRepository {}
+
+class MockInventarioRepository extends Mock implements InventarioRepository {}
 
 /// Pinta cada pantalla del panel con datos de ejemplo, en ancho de escritorio y en angosto, para
 /// detectar errores de layout (overflow, viewports sin alto, intrínsecos) que los tests de
@@ -108,6 +112,7 @@ void main() {
   late MockPagoRepository pagos;
   late MockCrmRepository crm;
   late MockPromocionRepository promociones;
+  late MockInventarioRepository inventario;
 
   setUpAll(() {
     registerFallbackValue(DateTime(2026));
@@ -120,6 +125,23 @@ void main() {
     empleados = MockEmpleadoRepository();
     tenants = MockTenantRepository();
     pagos = MockPagoRepository();
+    inventario = MockInventarioRepository();
+    when(() => inventario.insumos(sucursalId: any(named: 'sucursalId'))).thenAnswer(
+      (_) async => const [
+        InsumoStock(
+          id: 'i1',
+          nombre: 'Shampoo neutro concentrado de nombre largo',
+          unidad: UnidadMedida.ml,
+          costoUnitario: 12.3456,
+          moneda: 'COP',
+          sucursalId: 'b1',
+          cantidad: -1250.5,
+          minimo: 500,
+          bajoMinimo: true,
+        ),
+      ],
+    );
+    when(() => inventario.costos()).thenAnswer((_) async => const []);
     promociones = MockPromocionRepository();
     when(() => promociones.listar()).thenAnswer(
       (_) async => [
@@ -247,6 +269,8 @@ void main() {
           pagoRepositoryProvider.overrideWithValue(pagos),
           crmRepositoryProvider.overrideWithValue(crm),
           promocionRepositoryProvider.overrideWithValue(promociones),
+          inventarioRepositoryProvider.overrideWithValue(inventario),
+          puedeGestionarInventarioProvider.overrideWithValue(true),
           puedeGestionarPromocionesProvider.overrideWithValue(true),
           abrirUrlExternaProvider.overrideWithValue((_) async => true),
         ],
@@ -273,6 +297,7 @@ void main() {
     'suscripción': (const SubscriptionScreen(), 'Pagar con Wompi'),
     'crm': (const CrmScreen(), 'Clientes en riesgo'),
     'promociones': (const PromotionsScreen(), 'Nueva promoción'),
+    'inventario': (const InventoryScreen(), 'Reponer'),
   };
 
   for (final pantalla in pantallas.entries) {
@@ -300,6 +325,9 @@ void main() {
       when(() => pagos.listar()).thenAnswer((_) => nunca);
       when(() => promociones.listar()).thenAnswer((_) => nunca);
       when(
+        () => inventario.insumos(sucursalId: any(named: 'sucursalId')),
+      ).thenAnswer((_) => Completer<List<InsumoStock>>().future);
+      when(
         () => crm.clientes(
           segmento: any(named: 'segmento'),
           busqueda: any(named: 'busqueda'),
@@ -326,6 +354,9 @@ void main() {
       when(() => tenants.search(any())).thenThrow(fallo);
       when(() => pagos.listar()).thenThrow(fallo);
       when(() => promociones.listar()).thenThrow(fallo);
+      when(
+        () => inventario.insumos(sucursalId: any(named: 'sucursalId')),
+      ).thenThrow(fallo);
       when(
         () => crm.clientes(
           segmento: any(named: 'segmento'),

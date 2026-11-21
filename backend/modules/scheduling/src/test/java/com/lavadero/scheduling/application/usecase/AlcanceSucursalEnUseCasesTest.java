@@ -81,7 +81,10 @@ class AlcanceSucursalEnUseCasesTest {
         .isInstanceOf(ForbiddenException.class);
     assertThatThrownBy(
             () ->
-                new CompletarReservaUseCase(reservas)
+                new CompletarReservaUseCase(
+                        reservas,
+                        mock(org.springframework.context.ApplicationEventPublisher.class),
+                        java.time.Clock.systemUTC())
                     .execute(new ReservaStaffCommand(ajena.getId(), adminSucursal)))
         .isInstanceOf(ForbiddenException.class);
     verify(reservas, never()).save(any());

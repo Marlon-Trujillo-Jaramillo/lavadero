@@ -14,6 +14,7 @@ include("modules:tenant-management")
 include("modules:identity-access")
 include("modules:catalog")
 include("modules:scheduling")
+include("modules:inventory")
 
 // Tests de arquitectura (ArchUnit) que escanean todos los módulos anteriores
 include("architecture-tests")
