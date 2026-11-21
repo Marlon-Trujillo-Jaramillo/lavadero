@@ -47,7 +47,7 @@ razones de cambio distintas.
 |---|---|
 | Dependencias | Conoce `catalog` por su capa `application` (validar servicios, leer precios) y `tenant`/`sucursal` solo por FK. **No depende de `scheduling`**: escucha su evento. ArchUnit lo verifica en las dos direcciones: inventory no usa scheduling, y ningún módulo usa inventory |
 | `ReservaCompletadaEvent` (en `contracts`) | `CompletarReservaUseCase` lo publica después de guardar. El evento vive en `contracts`, que es el lugar de los eventos entre módulos (como `TenantCreadoEvent`) |
-| Escucha `BEFORE_COMMIT` | El consumo corre en la misma transacción que completó la reserva. Se confirman juntos o ninguno: no hay lavado completado sin su consumo, ni consumo de un lavado que se revirtió. El test lo prueba con un rollback |
+| Entrega del evento | ~~En la misma transacción (`BEFORE_COMMIT`)~~. Desde la spec 013, el evento se guarda en el **outbox** dentro de la transacción de la reserva y llega al inventario por Kafka (o en el mismo proceso). El consumo es eventual, pero está garantizado: si la reserva se revierte, el evento nunca existió |
 | Idempotencia | El caso de uso no hace nada si la reserva ya descontó. El índice único parcial `(reserva_id, insumo_id) WHERE tipo = 'CONSUMO'` respalda la regla. Hoy el evento llega una sola vez; con Kafka la entrega será "al menos una vez" y esto ya está listo |
 | Stock atómico | `INSERT ... ON CONFLICT DO UPDATE SET cantidad = cantidad + delta RETURNING cantidad`, sin leer en Java y guardar. El test lanza 20 lavados simultáneos y no se pierde ningún descuento. El conteo físico bloquea la fila (`FOR UPDATE`) entre leer lo anterior y escribir lo contado |
 | SQL directo | `NamedParameterJdbcTemplate` y no JPA: las escrituras importantes son UPSERTs atómicos que JPA no expresa bien. RLS aplica igual, porque corre en la transacción del caso de uso |
@@ -85,15 +85,9 @@ Entradas, ajustes y mínimo reciben `{sucursalId, cantidad, nota?}`.
     receta.
   - Los números aceptan miles con punto ("1.500") y decimales con coma ("0,5").
 
-## Siguiente paso: Kafka
+## Kafka
 
-`ReservaCompletadaEvent` es el primer candidato para el outbox transaccional:
-1. `CompletarReservaUseCase` escribe el evento en una tabla `outbox` en su transacción.
-2. Un publicador lo manda a Kafka.
-3. `inventory` lo consume de forma asíncrona.
-
-La idempotencia ya existe. Lo que cambia es que el consumo deja de ser atómico con la completación
-y pasa a ser eventual.
+Hecho en la spec 013 (`docs/specs/013-eventos-kafka.md`).
 
 ## Fuera de alcance
 

@@ -8,6 +8,18 @@ spring:
     properties:
       hibernate:
         format_sql: false
+  # Kafka solo se usa con lavadero.mensajeria.transporte=kafka (ver abajo). Con el transporte
+  # local (por defecto) no se abre ninguna conexión al broker.
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      # acks=all + idempotencia: el broker confirma solo cuando el mensaje está replicado, y un
+      # reintento del productor no lo duplica dentro de Kafka.
+      acks: all
+      properties:
+        enable.idempotence: true
+    consumer:
+      auto-offset-reset: earliest
   flyway:
     enabled: true
     # Barre `db/migration` en TODOS los jars del classpath: cubre tanto
@@ -50,6 +62,15 @@ sentry:
   traces-sample-rate: 0.1
 
 lavadero:
+  # Eventos entre módulos (docs/specs/013-eventos-kafka.md): outbox transaccional + relay.
+  # `local` entrega en el mismo proceso (desarrollo sin broker); `kafka` publica en Kafka.
+  mensajeria:
+    transporte: ${LAVADERO_MENSAJERIA_TRANSPORTE:local}
+    relay-ms: ${LAVADERO_MENSAJERIA_RELAY_MS:1000}
+    kafka:
+      grupo: lavadero-backend
+      particiones: ${LAVADERO_KAFKA_PARTICIONES:3}
+      replicas: ${LAVADERO_KAFKA_REPLICAS:1}
   observability:
     # Peticiones que tarden más que esto dejan un WARN (PeticionesLentasFilter).
     slow-request-ms: ${LAVADERO_SLOW_REQUEST_MS:500}

@@ -153,4 +153,25 @@ class LayeredArchitectureTest {
         .resideInAPackage("com.lavadero.inventory..")
         .check(clases);
   }
+
+  /**
+   * messaging es infraestructura compartida (outbox, relay, Kafka): los módulos dependen de él para
+   * recibir eventos, nunca al revés. Si messaging conociera un módulo, agregar un evento nuevo
+   * obligaría a tocar la mensajería.
+   */
+  @Test
+  void messagingNoConoceNingunModuloDeNegocio() {
+    noClasses()
+        .that()
+        .resideInAPackage("com.lavadero.messaging..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage(
+            "com.lavadero.tenant..",
+            "com.lavadero.catalog..",
+            "com.lavadero.identity..",
+            "com.lavadero.scheduling..",
+            "com.lavadero.inventory..")
+        .check(clases);
+  }
 }

@@ -9,6 +9,8 @@ include("shared-kernel")
 // Eventos de dominio compartidos entre módulos de negocio
 include("contracts")
 
+include("messaging")
+
 // Módulos de negocio (bounded contexts como módulos físicos de Gradle)
 include("modules:tenant-management")
 include("modules:identity-access")

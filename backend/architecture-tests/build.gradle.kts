@@ -19,6 +19,7 @@ dependencies {
     testImplementation(project(":modules:catalog"))
     testImplementation(project(":modules:scheduling"))
     testImplementation(project(":modules:inventory"))
+    testImplementation(project(":messaging"))
 
     testImplementation("com.tngtech.archunit:archunit-junit5")
 }
