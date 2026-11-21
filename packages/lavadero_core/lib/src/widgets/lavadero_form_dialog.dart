@@ -105,8 +105,13 @@ class LavaderoFormDialog extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: LavaderoSpacing.lg),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // Wrap y no Row: con una etiqueta larga o en un teléfono angosto,
+                // el botón principal baja de línea en vez de desbordarse.
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: LavaderoSpacing.sm,
+                  runSpacing: LavaderoSpacing.sm,
                   children: [
                     TextButton(
                       onPressed: isLoading
@@ -114,7 +119,6 @@ class LavaderoFormDialog extends StatelessWidget {
                           : () => Navigator.of(context).pop(),
                       child: const Text('Cancelar'),
                     ),
-                    const SizedBox(width: LavaderoSpacing.sm),
                     LoadingButton(
                       onPressed: onSubmit,
                       isLoading: isLoading,

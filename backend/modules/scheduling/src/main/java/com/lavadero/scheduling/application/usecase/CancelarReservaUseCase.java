@@ -3,6 +3,7 @@ package com.lavadero.scheduling.application.usecase;
 import com.lavadero.scheduling.application.command.CancelarReservaCommand;
 import com.lavadero.scheduling.application.dto.ReservaDto;
 import com.lavadero.scheduling.domain.model.Reserva;
+import com.lavadero.scheduling.domain.repository.PromocionRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.shared.application.UseCase;
 import com.lavadero.shared.application.exception.ForbiddenException;
@@ -15,9 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class CancelarReservaUseCase implements UseCase<CancelarReservaCommand, ReservaDto> {
 
   private final ReservaRepository reservaRepository;
+  private final PromocionRepository promocionRepository;
 
-  public CancelarReservaUseCase(ReservaRepository reservaRepository) {
+  public CancelarReservaUseCase(
+      ReservaRepository reservaRepository, PromocionRepository promocionRepository) {
     this.reservaRepository = reservaRepository;
+    this.promocionRepository = promocionRepository;
   }
 
   @Override
@@ -38,6 +42,9 @@ public class CancelarReservaUseCase implements UseCase<CancelarReservaCommand, R
     }
 
     reserva.cancelar();
+    // El cupo de la promoción vuelve a estar disponible: un cupón de "primeros 50" no se pierde
+    // porque alguien canceló.
+    reserva.getPromocion().ifPresent(p -> promocionRepository.liberarUso(p.promocionId()));
     return ReservaMapper.toDto(reservaRepository.save(reserva));
   }
 }

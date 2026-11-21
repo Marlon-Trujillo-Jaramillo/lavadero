@@ -16,6 +16,8 @@ class Reserva {
     required this.estado,
     this.vehiculoId,
     this.vehiculoPlaca,
+    this.promocionId,
+    this.precioLista,
   });
 
   factory Reserva.fromJson(Map<String, dynamic> json) => Reserva(
@@ -31,6 +33,8 @@ class Reserva {
     estado: ReservaEstado.fromWireValue(json['estado'] as String),
     vehiculoId: json['vehiculoId'] as String?,
     vehiculoPlaca: json['vehiculoPlaca'] as String?,
+    promocionId: json['promocionId'] as String?,
+    precioLista: (json['precioLista'] as num?)?.toDouble(),
   );
 
   final String id;
@@ -48,6 +52,14 @@ class Reserva {
   final String? vehiculoId;
   final String? vehiculoPlaca;
 
+  /// Promoción aplicada al reservar (opcional). [precio] ya es el precio
+  /// final; [precioLista] es el de antes del descuento.
+  final String? promocionId;
+  final double? precioLista;
+
+  /// Lo que se ahorró el cliente, o 0 si no hubo promoción.
+  double get descuento => precioLista == null ? 0 : precioLista! - precio;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -63,7 +75,9 @@ class Reserva {
           other.moneda == moneda &&
           other.estado == estado &&
           other.vehiculoId == vehiculoId &&
-          other.vehiculoPlaca == vehiculoPlaca;
+          other.vehiculoPlaca == vehiculoPlaca &&
+          other.promocionId == promocionId &&
+          other.precioLista == precioLista;
 
   @override
   int get hashCode => Object.hash(
@@ -79,6 +93,8 @@ class Reserva {
     estado,
     vehiculoId,
     vehiculoPlaca,
+    promocionId,
+    precioLista,
   );
 
   @override

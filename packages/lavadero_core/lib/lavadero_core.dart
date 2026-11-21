@@ -19,6 +19,7 @@ export 'src/format/formato.dart';
 export 'src/identity/identity.dart';
 export 'src/models/models.dart';
 export 'src/network/network.dart';
+export 'src/promociones/promociones.dart';
 export 'src/scheduling/scheduling.dart';
 export 'src/theme/theme.dart';
 export 'src/widgets/widgets.dart';

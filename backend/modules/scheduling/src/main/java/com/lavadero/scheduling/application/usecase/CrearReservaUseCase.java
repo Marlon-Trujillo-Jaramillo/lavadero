@@ -4,9 +4,12 @@ import com.lavadero.catalog.application.dto.ServicioDto;
 import com.lavadero.catalog.application.usecase.ObtenerServicioPorIdUseCase;
 import com.lavadero.scheduling.application.command.CrearReservaCommand;
 import com.lavadero.scheduling.application.dto.ReservaDto;
+import com.lavadero.scheduling.domain.model.PromocionAplicada;
 import com.lavadero.scheduling.domain.model.Reserva;
 import com.lavadero.scheduling.domain.model.Vehiculo;
 import com.lavadero.scheduling.domain.model.VehiculoReservado;
+import com.lavadero.scheduling.domain.model.promocion.PrecioCotizado;
+import com.lavadero.scheduling.domain.repository.PromocionRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.scheduling.domain.repository.VehiculoRepository;
 import com.lavadero.scheduling.domain.service.DisponibilidadService;
@@ -37,16 +40,22 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
   private final ObtenerServicioPorIdUseCase obtenerServicioPorIdUseCase;
   private final ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase;
   private final VehiculoRepository vehiculoRepository;
+  private final PromocionRepository promocionRepository;
+  private final ResolvedorPromociones resolvedorPromociones;
 
   public CrearReservaUseCase(
       ReservaRepository reservaRepository,
       ObtenerServicioPorIdUseCase obtenerServicioPorIdUseCase,
       ObtenerSucursalPorIdUseCase obtenerSucursalPorIdUseCase,
-      VehiculoRepository vehiculoRepository) {
+      VehiculoRepository vehiculoRepository,
+      PromocionRepository promocionRepository,
+      ResolvedorPromociones resolvedorPromociones) {
     this.reservaRepository = reservaRepository;
     this.obtenerServicioPorIdUseCase = obtenerServicioPorIdUseCase;
     this.obtenerSucursalPorIdUseCase = obtenerSucursalPorIdUseCase;
     this.vehiculoRepository = vehiculoRepository;
+    this.promocionRepository = promocionRepository;
+    this.resolvedorPromociones = resolvedorPromociones;
   }
 
   @Override
@@ -72,6 +81,10 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
       throw new ValidationException("No hay cupo disponible en esa sucursal para ese horario");
     }
 
+    Money precioLista = Money.de(servicio.precio(), servicio.moneda());
+    PrecioCotizado precio = resolvedorPromociones.cotizar(precioLista, inicio, input.codigoCupon());
+    PromocionAplicada promocion = reservarUsoDePromocion(precio);
+
     Reserva reserva =
         Reserva.nueva(
             TenantContext.requerido(),
@@ -80,10 +93,29 @@ public class CrearReservaUseCase implements UseCase<CrearReservaCommand, Reserva
             input.clienteId(),
             inicio,
             servicio.duracionEstimadaMinutos(),
-            Money.de(servicio.precio(), servicio.moneda()),
-            vehiculo);
+            precio.precioFinal(),
+            vehiculo,
+            promocion);
 
     return ReservaMapper.toDto(reservaRepository.save(reserva));
+  }
+
+  /**
+   * Gasta un uso de la promoción elegida. Si otra reserva se llevó el último cupo entre la
+   * cotización y este momento, el UPDATE condicional no cambia nada y la reserva no se crea.
+   */
+  private PromocionAplicada reservarUsoDePromocion(PrecioCotizado precio) {
+    return precio
+        .getPromocion()
+        .map(
+            p -> {
+              if (!promocionRepository.reservarUso(p.getId())) {
+                throw new ValidationException(
+                    "La promoción '%s' se acaba de agotar".formatted(p.getNombre()));
+              }
+              return new PromocionAplicada(p.getId(), precio.precioLista());
+            })
+        .orElse(null);
   }
 
   /**

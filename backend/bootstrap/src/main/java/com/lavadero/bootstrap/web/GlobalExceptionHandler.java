@@ -13,11 +13,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 /**
  * Traductor centralizado de excepciones a respuestas HTTP consistentes: {@code {timestamp, status,
@@ -108,6 +111,39 @@ public class GlobalExceptionHandler {
             .findFirst()
             .orElse("Solicitud inválida");
     return build(HttpStatus.BAD_REQUEST, message, request);
+  }
+
+  /**
+   * Errores de forma de la petición: un query param que no se puede convertir ({@code
+   * servicioId=abc}, una fecha mal escrita), uno obligatorio que falta, o un cuerpo que no es JSON
+   * válido o trae un valor imposible (una hora {@code "25:00"}). Son del cliente: 400 con un
+   * mensaje que nombra el parámetro, sin el detalle interno del parser.
+   */
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ErrorResponse> handleParametroInvalido(
+      MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    return build(
+        HttpStatus.BAD_REQUEST,
+        "El parámetro '%s' tiene un formato inválido".formatted(ex.getName()),
+        request);
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ErrorResponse> handleParametroFaltante(
+      MissingServletRequestParameterException ex, HttpServletRequest request) {
+    return build(
+        HttpStatus.BAD_REQUEST,
+        "Falta el parámetro '%s'".formatted(ex.getParameterName()),
+        request);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handleCuerpoIlegible(
+      HttpMessageNotReadableException ex, HttpServletRequest request) {
+    return build(
+        HttpStatus.BAD_REQUEST,
+        "El cuerpo de la solicitud no es válido: revisa el formato de los campos",
+        request);
   }
 
   /**

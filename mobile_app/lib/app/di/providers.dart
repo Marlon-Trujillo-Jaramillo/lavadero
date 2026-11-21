@@ -69,3 +69,7 @@ final schedulingRepositoryProvider = Provider<SchedulingRepository>((ref) {
 final vehiculoRepositoryProvider = Provider<VehiculoRepository>((ref) {
   return VehiculoRepository(dio: ref.watch(apiClientProvider).dio);
 });
+
+final promocionRepositoryProvider = Provider<PromocionRepository>((ref) {
+  return PromocionRepository(dio: ref.watch(apiClientProvider).dio);
+});

@@ -8,13 +8,9 @@ import com.lavadero.scheduling.domain.model.crm.OrdenClientes;
 import com.lavadero.scheduling.domain.model.crm.SegmentoCliente;
 import com.lavadero.scheduling.interfaces.rest.dto.FichaClienteResponse;
 import com.lavadero.scheduling.interfaces.rest.dto.PaginaClientesResponse;
-import com.lavadero.shared.application.exception.ValidationException;
 import com.lavadero.shared.security.AlcanceSucursal;
 import com.lavadero.shared.security.PrincipalAutenticado;
-import java.util.Arrays;
-import java.util.Locale;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -56,9 +52,9 @@ public class ClienteCrmController {
     return PaginaClientesResponse.from(
         listarClientesUseCase.execute(
             new ListarClientesQuery(
-                enumOpcional(SegmentoCliente.class, segmento, "segmento"),
+                ParametrosEnum.opcional(SegmentoCliente.class, segmento, "segmento"),
                 q,
-                enumOpcional(OrdenClientes.class, orden, "orden"),
+                ParametrosEnum.opcional(OrdenClientes.class, orden, "orden"),
                 sucursalId,
                 pagina,
                 tamano,
@@ -74,18 +70,5 @@ public class ClienteCrmController {
     return FichaClienteResponse.from(
         obtenerFichaClienteUseCase.execute(
             new FichaClienteQuery(clienteId, sucursalId, AlcanceSucursal.de(principal))));
-  }
-
-  static <E extends Enum<E>> E enumOpcional(Class<E> tipo, String valor, String parametro) {
-    if (valor == null || valor.isBlank()) {
-      return null;
-    }
-    try {
-      return Enum.valueOf(tipo, valor.trim().toUpperCase(Locale.ROOT));
-    } catch (IllegalArgumentException e) {
-      String validos =
-          Arrays.stream(tipo.getEnumConstants()).map(Enum::name).collect(Collectors.joining(", "));
-      throw new ValidationException("'%s' debe ser uno de: %s".formatted(parametro, validos));
-    }
   }
 }

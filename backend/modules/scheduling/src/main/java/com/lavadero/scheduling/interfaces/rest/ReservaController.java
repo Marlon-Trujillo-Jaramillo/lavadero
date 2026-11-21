@@ -78,7 +78,8 @@ public class ReservaController {
                 request.sucursalId(),
                 request.servicioId(),
                 request.fechaHoraInicio(),
-                request.vehiculoId()));
+                request.vehiculoId(),
+                request.codigoCupon()));
     return ResponseEntity.created(URI.create("/api/v1/agenda/reservas/" + creada.id()))
         .body(ReservaResponse.from(creada));
   }
