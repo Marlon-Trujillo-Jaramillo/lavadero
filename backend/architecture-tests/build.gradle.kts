@@ -18,6 +18,7 @@ dependencies {
     testImplementation(project(":modules:identity-access"))
     testImplementation(project(":modules:catalog"))
     testImplementation(project(":modules:scheduling"))
+    testImplementation(project(":modules:inventory"))
 
     testImplementation("com.tngtech.archunit:archunit-junit5")
 }

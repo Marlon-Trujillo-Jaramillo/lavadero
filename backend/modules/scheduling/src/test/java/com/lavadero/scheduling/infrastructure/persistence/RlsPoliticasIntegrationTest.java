@@ -15,11 +15,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Guarda transversal sobre TODAS las migraciones (scheduling depende de los demás módulos, así que
- * aquí corren V1..VN completas): cada tabla con {@code tenant_id} tiene RLS activada y forzada, y
- * cada política usa {@code nullif(current_setting(...), '')}. V16/V17 se escribieron sin ese {@code
- * nullif} y reintrodujeron el 500 de conexiones del pool ya corregido en V8-V11; este test lo
- * habría parado.
+ * Guarda transversal sobre TODAS las migraciones (scheduling depende de los demás módulos y trae
+ * `inventory` en test, así que aquí corren V1..VN completas): cada tabla con {@code tenant_id}
+ * tiene RLS activada y forzada, y cada política usa {@code nullif(current_setting(...), '')}.
+ * V16/V17 se escribieron sin ese {@code nullif} y reintrodujeron el 500 de conexiones del pool ya
+ * corregido en V8-V11; este test lo habría parado.
  */
 @SpringBootTest(classes = SchedulingTestApplication.class)
 @Testcontainers

@@ -28,6 +28,8 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly(project(":modules:identity-access"))
+    // Solo para que RlsPoliticasIntegrationTest revise también las migraciones de inventory.
+    testRuntimeOnly(project(":modules:inventory"))
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
 }
