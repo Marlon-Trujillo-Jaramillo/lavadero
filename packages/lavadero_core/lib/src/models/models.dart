@@ -6,6 +6,7 @@ export 'cliente_crm.dart';
 export 'empleado.dart';
 export 'incidencia.dart';
 export 'incidencia_categoria.dart';
+export 'inventario.dart';
 export 'pago.dart';
 export 'promocion.dart';
 export 'reserva.dart';
