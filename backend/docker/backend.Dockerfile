@@ -19,6 +19,7 @@ COPY buildSrc ./buildSrc
 COPY platform ./platform
 COPY shared-kernel ./shared-kernel
 COPY contracts ./contracts
+COPY messaging ./messaging
 COPY modules ./modules
 COPY architecture-tests ./architecture-tests
 COPY bootstrap ./bootstrap
