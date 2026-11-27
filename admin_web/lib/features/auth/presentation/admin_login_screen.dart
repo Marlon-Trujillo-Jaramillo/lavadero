@@ -8,6 +8,16 @@ import '../../../app/di/providers.dart';
 import '../../../app/router/app_routes.dart';
 import '../application/admin_auth_controller.dart';
 
+/// Activado solo en el despliegue de demostración con
+/// `--dart-define=DEMO_MODE=true`. En producción es `false` y la pantalla se
+/// comporta igual que siempre (sin banner, sin credenciales precargadas y con
+/// el enlace de alta self-service visible).
+const bool _demoMode = bool.fromEnvironment('DEMO_MODE');
+
+const String _demoSlug = 'demo';
+const String _demoEmail = 'demo@lavadero.app';
+const String _demoPassword = 'LavaderoDemo2026';
+
 /// Login de administración (dueño de lavadero / super-admin) sobre
 /// [AuthLayout]: panel de marca a la izquierda y formulario a la derecha. Reutiliza la
 /// lógica de auth de `lavadero_core` (mismo `AuthRepository`, mismo patrón
@@ -26,6 +36,16 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_demoMode) {
+      _tenantSlugController.text = _demoSlug;
+      _emailController.text = _demoEmail;
+      _passwordController.text = _demoPassword;
+    }
+  }
 
   @override
   void dispose() {
@@ -74,6 +94,10 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (_demoMode) ...[
+                const _DemoBanner(),
+                const SizedBox(height: LavaderoSpacing.md),
+              ],
               TextFormField(
                 controller: _tenantSlugController,
                 textInputAction: TextInputAction.next,
@@ -116,16 +140,53 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                 onPressed: _submit,
                 child: const Text('Ingresar'),
               ),
-              const SizedBox(height: LavaderoSpacing.sm),
-              TextButton(
-                onPressed: _isLoading
-                    ? null
-                    : () => context.go(AppRoutes.registro),
-                child: const Text('¿Tu lavadero aún no tiene cuenta? Créala'),
-              ),
+              if (!_demoMode) ...[
+                const SizedBox(height: LavaderoSpacing.sm),
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => context.go(AppRoutes.registro),
+                  child: const Text('¿Tu lavadero aún no tiene cuenta? Créala'),
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Aviso visible solo en el despliegue de demostración: deja claro que es un
+/// entorno de prueba con datos de ejemplo y que las credenciales ya vienen
+/// cargadas (basta pulsar «Ingresar»).
+class _DemoBanner extends StatelessWidget {
+  const _DemoBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(LavaderoSpacing.md),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(LavaderoRadii.md),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.science_outlined, color: scheme.onPrimaryContainer),
+          const SizedBox(width: LavaderoSpacing.sm),
+          Expanded(
+            child: Text(
+              'Modo demostración · datos de ejemplo. Las credenciales ya están '
+              'cargadas: solo pulsa «Ingresar» para explorar el panel.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onPrimaryContainer),
+            ),
+          ),
+        ],
       ),
     );
   }
