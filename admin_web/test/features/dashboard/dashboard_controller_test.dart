@@ -16,14 +16,20 @@ void main() {
     moneda: 'COP',
     totalReservasCompletadas: 3,
     serviciosMasPedidos: [
-      ServicioPopular(servicioId: 's1', nombreServicio: 'Lavado básico', cantidad: 2),
+      ServicioPopular(
+        servicioId: 's1',
+        nombreServicio: 'Lavado básico',
+        cantidad: 2,
+      ),
     ],
   );
 
   setUp(() {
     schedulingRepository = MockSchedulingRepository();
     container = ProviderContainer(
-      overrides: [schedulingRepositoryProvider.overrideWithValue(schedulingRepository)],
+      overrides: [
+        schedulingRepositoryProvider.overrideWithValue(schedulingRepository),
+      ],
     );
     addTearDown(container.dispose);
   });
@@ -42,6 +48,21 @@ void main() {
     final state = container.read(dashboardControllerProvider);
     expect(state.resumen?.totalReservasCompletadas, 3);
     expect(state.isLoading, isFalse);
+  });
+
+  test('arma la serie de 7 días y el resumen de ayer', () async {
+    when(
+      () => schedulingRepository.resumenVentas(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      ),
+    ).thenAnswer((_) async => resumen);
+
+    await container.read(dashboardControllerProvider.notifier).cargar();
+
+    final state = container.read(dashboardControllerProvider);
+    expect(state.serie.length, 7);
+    expect(state.resumenAyer, isNotNull);
   });
 
   test('errores del repositorio quedan en errorMessage', () async {
