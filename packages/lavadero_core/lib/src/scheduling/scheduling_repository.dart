@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/checklist_item.dart';
+import '../models/gasto.dart';
 import '../models/incidencia.dart';
 import '../models/incidencia_categoria.dart';
 import '../models/reserva.dart';
@@ -151,6 +152,71 @@ class SchedulingRepository {
         },
       );
       return ResumenVentas.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Ingresos, gastos y utilidad del periodo (`/finanzas/resumen`).
+  Future<ResumenFinanciero> resumenFinanciero({
+    required DateTime desde,
+    required DateTime hasta,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/finanzas/resumen',
+        queryParameters: {
+          'desde': desde.toIso8601String().substring(0, 10),
+          'hasta': hasta.toIso8601String().substring(0, 10),
+        },
+      );
+      return ResumenFinanciero.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Gastos del periodo, el más reciente primero.
+  Future<List<Gasto>> listarGastos({
+    required DateTime desde,
+    required DateTime hasta,
+  }) async {
+    try {
+      final response = await _dio.get<List<dynamic>>(
+        '/gastos',
+        queryParameters: {
+          'desde': desde.toIso8601String().substring(0, 10),
+          'hasta': hasta.toIso8601String().substring(0, 10),
+        },
+      );
+      return (response.data ?? [])
+          .map((json) => Gasto.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Registra un gasto operativo (opcionalmente imputado a una sucursal).
+  Future<Gasto> registrarGasto({
+    required DateTime fecha,
+    required CategoriaGasto categoria,
+    required String descripcion,
+    required double monto,
+    String? sucursalId,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/gastos',
+        data: {
+          'sucursalId': sucursalId,
+          'fecha': fecha.toIso8601String().substring(0, 10),
+          'categoria': categoria.wireValue,
+          'descripcion': descripcion,
+          'monto': monto,
+        },
+      );
+      return Gasto.fromJson(response.data!);
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     }

@@ -126,7 +126,9 @@ void main() {
     tenants = MockTenantRepository();
     pagos = MockPagoRepository();
     inventario = MockInventarioRepository();
-    when(() => inventario.insumos(sucursalId: any(named: 'sucursalId'))).thenAnswer(
+    when(
+      () => inventario.insumos(sucursalId: any(named: 'sucursalId')),
+    ).thenAnswer(
       (_) async => const [
         InsumoStock(
           id: 'i1',
@@ -200,7 +202,9 @@ void main() {
         },
       ),
     );
-    when(() => scheduling.listarSucursales()).thenAnswer((_) async => const [sucursal]);
+    when(
+      () => scheduling.listarSucursales(),
+    ).thenAnswer((_) async => const [sucursal]);
     when(
       () => scheduling.agendaDelDia(
         sucursalId: any(named: 'sucursalId'),
@@ -224,20 +228,66 @@ void main() {
         ingresosTotales: 1250000,
         moneda: 'COP',
         totalReservasCompletadas: 28,
-        serviciosMasPedidos: [ServicioPopular(servicioId: 's1', nombreServicio: 'Lavado full', cantidad: 20)],
+        serviciosMasPedidos: [
+          ServicioPopular(
+            servicioId: 's1',
+            nombreServicio: 'Lavado full',
+            cantidad: 20,
+          ),
+        ],
       ),
     );
-    when(() => catalog.listar()).thenAnswer((_) async => const [servicio, servicioInactivo]);
+    when(
+      () => scheduling.resumenFinanciero(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      ),
+    ).thenAnswer(
+      (_) async => const ResumenFinanciero(
+        ingresos: 1250000,
+        gastos: 300000,
+        utilidad: 950000,
+        moneda: 'COP',
+      ),
+    );
+    when(
+      () => scheduling.listarGastos(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      ),
+    ).thenAnswer((_) async => const <Gasto>[]);
+    when(
+      () => catalog.listar(),
+    ).thenAnswer((_) async => const [servicio, servicioInactivo]);
     when(() => empleados.listar()).thenAnswer(
       (_) async => const [
-        Empleado(id: 'e1', email: 'ana@lavadero.co', nombre: 'Ana Gómez', sucursalId: 'b1', estado: 'ACTIVO'),
-        Empleado(id: 'e2', email: 'luis@lavadero.co', nombre: 'Luis Pérez', estado: 'BLOQUEADO'),
+        Empleado(
+          id: 'e1',
+          email: 'ana@lavadero.co',
+          nombre: 'Ana Gómez',
+          sucursalId: 'b1',
+          estado: 'ACTIVO',
+        ),
+        Empleado(
+          id: 'e2',
+          email: 'luis@lavadero.co',
+          nombre: 'Luis Pérez',
+          estado: 'BLOQUEADO',
+        ),
       ],
     );
     when(() => tenants.listarPlanes()).thenAnswer((_) async => planes);
-    when(() => tenants.listarPlanesDisponibles()).thenAnswer((_) async => planes);
+    when(
+      () => tenants.listarPlanesDisponibles(),
+    ).thenAnswer((_) async => planes);
     when(() => tenants.search(any())).thenAnswer(
-      (_) async => const [TenantSummary(id: 't1', slug: 'lavadero-centro', nombre: 'Lavadero Centro')],
+      (_) async => const [
+        TenantSummary(
+          id: 't1',
+          slug: 'lavadero-centro',
+          nombre: 'Lavadero Centro',
+        ),
+      ],
     );
     when(() => pagos.listar()).thenAnswer(
       (_) async => [
@@ -302,7 +352,9 @@ void main() {
 
   for (final pantalla in pantallas.entries) {
     for (final tamanio in tamanios.entries) {
-      testWidgets('${pantalla.key} se pinta sin errores (${tamanio.key})', (tester) async {
+      testWidgets('${pantalla.key} se pinta sin errores (${tamanio.key})', (
+        tester,
+      ) async {
         await pintar(tester, pantalla.value.$1, tamanio.value);
         expect(tester.takeException(), isNull);
         expect(find.text(pantalla.value.$2), findsWidgets);
@@ -311,11 +363,28 @@ void main() {
   }
 
   for (final pantalla in pantallas.entries) {
-    testWidgets('${pantalla.key} muestra su estado de carga sin errores', (tester) async {
+    testWidgets('${pantalla.key} muestra su estado de carga sin errores', (
+      tester,
+    ) async {
       final nunca = Completer<Never>().future;
       when(() => scheduling.listarSucursales()).thenAnswer((_) => nunca);
       when(
-        () => scheduling.resumenVentas(desde: any(named: 'desde'), hasta: any(named: 'hasta')),
+        () => scheduling.resumenVentas(
+          desde: any(named: 'desde'),
+          hasta: any(named: 'hasta'),
+        ),
+      ).thenAnswer((_) => nunca);
+      when(
+        () => scheduling.resumenFinanciero(
+          desde: any(named: 'desde'),
+          hasta: any(named: 'hasta'),
+        ),
+      ).thenAnswer((_) => nunca);
+      when(
+        () => scheduling.listarGastos(
+          desde: any(named: 'desde'),
+          hasta: any(named: 'hasta'),
+        ),
       ).thenAnswer((_) => nunca);
       when(() => catalog.listar()).thenAnswer((_) => nunca);
       when(() => empleados.listar()).thenAnswer((_) => nunca);
@@ -341,11 +410,16 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('${pantalla.key} muestra su error sin errores de layout', (tester) async {
+    testWidgets('${pantalla.key} muestra su error sin errores de layout', (
+      tester,
+    ) async {
       const fallo = ApiException(message: 'Servidor caído', statusCode: 500);
       when(() => scheduling.listarSucursales()).thenThrow(fallo);
       when(
-        () => scheduling.resumenVentas(desde: any(named: 'desde'), hasta: any(named: 'hasta')),
+        () => scheduling.resumenVentas(
+          desde: any(named: 'desde'),
+          hasta: any(named: 'hasta'),
+        ),
       ).thenThrow(fallo);
       when(() => catalog.listar()).thenThrow(fallo);
       when(() => empleados.listar()).thenThrow(fallo);
@@ -373,7 +447,9 @@ void main() {
     });
   }
 
-  testWidgets('agenda: cancelar pide confirmación antes de llamar al backend', (tester) async {
+  testWidgets('agenda: cancelar pide confirmación antes de llamar al backend', (
+    tester,
+  ) async {
     await pintar(tester, const AgendaScreen(), tamanios['escritorio']!);
     await tester.tap(find.byTooltip('Cancelar reserva'));
     await tester.pumpAndSettle();
@@ -384,24 +460,31 @@ void main() {
     verifyNever(() => scheduling.cancelar(any()));
   });
 
-  testWidgets('suscripción: "Pagar con Wompi" inicia el pago del plan', (tester) async {
-    when(() => pagos.iniciarPagoSuscripcion(subscriptionPlanId: any(named: 'subscriptionPlanId')))
-        .thenAnswer(
-          (_) async => const CheckoutPago(
-            pagoId: 'g2',
-            urlCheckout: 'https://checkout.wompi.co/p/',
-            llavePublica: 'pub',
-            referencia: 'LAV-2',
-            montoEnCentavos: 4900000,
-            moneda: 'COP',
-            firmaIntegridad: 'f',
-          ),
-        );
+  testWidgets('suscripción: "Pagar con Wompi" inicia el pago del plan', (
+    tester,
+  ) async {
+    when(
+      () => pagos.iniciarPagoSuscripcion(
+        subscriptionPlanId: any(named: 'subscriptionPlanId'),
+      ),
+    ).thenAnswer(
+      (_) async => const CheckoutPago(
+        pagoId: 'g2',
+        urlCheckout: 'https://checkout.wompi.co/p/',
+        llavePublica: 'pub',
+        referencia: 'LAV-2',
+        montoEnCentavos: 4900000,
+        moneda: 'COP',
+        firmaIntegridad: 'f',
+      ),
+    );
     await pintar(tester, const SubscriptionScreen(), tamanios['escritorio']!);
     await tester.tap(find.text('Pagar con Wompi').first);
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
-    verify(() => pagos.iniciarPagoSuscripcion(subscriptionPlanId: 'p1')).called(1);
+    verify(
+      () => pagos.iniciarPagoSuscripcion(subscriptionPlanId: 'p1'),
+    ).called(1);
   });
 }

@@ -3,11 +3,13 @@ import 'package:lavadero_core/lavadero_core.dart';
 
 import '../../../app/di/providers.dart';
 
-/// Resumen de ventas para un rango de fechas elegido por el admin (por defecto, los últimos 7
-/// días) — a diferencia de `dashboard`, que siempre es "hoy".
+/// Resumen de ventas + finanzas (utilidad) + gastos para un rango de fechas elegido por el admin
+/// (por defecto, los últimos 7 días) — a diferencia de `dashboard`, que siempre es "hoy".
 class ReportsState {
   ReportsState({
     this.resumen,
+    this.finanzas,
+    this.gastos = const [],
     this.isLoading = false,
     this.errorMessage,
     DateTime? desde,
@@ -16,6 +18,8 @@ class ReportsState {
        desde = desde ?? DateTime.now().subtract(const Duration(days: 6));
 
   final ResumenVentas? resumen;
+  final ResumenFinanciero? finanzas;
+  final List<Gasto> gastos;
   final bool isLoading;
   final String? errorMessage;
   final DateTime desde;
@@ -23,6 +27,8 @@ class ReportsState {
 
   ReportsState copyWith({
     ResumenVentas? resumen,
+    ResumenFinanciero? finanzas,
+    List<Gasto>? gastos,
     bool? isLoading,
     String? errorMessage,
     bool clearError = false,
@@ -31,6 +37,8 @@ class ReportsState {
   }) {
     return ReportsState(
       resumen: resumen ?? this.resumen,
+      finanzas: finanzas ?? this.finanzas,
+      gastos: gastos ?? this.gastos,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       desde: desde ?? this.desde,
@@ -51,11 +59,19 @@ class ReportsController extends Notifier<ReportsState> {
 
   Future<void> cargar() async {
     state = state.copyWith(isLoading: true, clearError: true);
+    final repo = ref.read(schedulingRepositoryProvider);
     try {
-      final resumen = await ref
-          .read(schedulingRepositoryProvider)
-          .resumenVentas(desde: state.desde, hasta: state.hasta);
-      state = state.copyWith(resumen: resumen, isLoading: false);
+      final (resumen, finanzas, gastos) = await (
+        repo.resumenVentas(desde: state.desde, hasta: state.hasta),
+        repo.resumenFinanciero(desde: state.desde, hasta: state.hasta),
+        repo.listarGastos(desde: state.desde, hasta: state.hasta),
+      ).wait;
+      state = state.copyWith(
+        resumen: resumen,
+        finanzas: finanzas,
+        gastos: gastos,
+        isLoading: false,
+      );
     } on ApiException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     }
@@ -67,5 +83,28 @@ class ReportsController extends Notifier<ReportsState> {
   }) async {
     state = state.copyWith(desde: desde, hasta: hasta);
     await cargar();
+  }
+
+  /// Registra un gasto y recarga el periodo. Devuelve el mensaje de error, o `null` si salió bien.
+  Future<String?> registrarGasto({
+    required DateTime fecha,
+    required CategoriaGasto categoria,
+    required String descripcion,
+    required double monto,
+  }) async {
+    try {
+      await ref
+          .read(schedulingRepositoryProvider)
+          .registrarGasto(
+            fecha: fecha,
+            categoria: categoria,
+            descripcion: descripcion,
+            monto: monto,
+          );
+      await cargar();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    }
   }
 }
