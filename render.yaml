@@ -25,7 +25,7 @@ services:
       - key: SPRING_DATASOURCE_USERNAME
         value: lavadero_app
       - key: SPRING_DATASOURCE_PASSWORD
-        value: lavadero_app
+        sync: false
       - key: LAVADERO_CORS_ALLOWED_ORIGINS
         value: https://marlon-trujillo-jaramillo.github.io
       # Secretos: se escriben en el panel de Render (Environment), no en el repo.
