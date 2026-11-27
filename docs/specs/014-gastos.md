@@ -3,7 +3,7 @@
 ## Estado
 
 Implementado (2026-11-26). Incluye `GastoUseCasesTest` (utilidad, utilidad negativa, validación de
-rango) y `V25__gasto.sql` con RLS (verificada por el chequeo automático de políticas). En
+rango) y `V26__gasto.sql` con RLS (verificada por el chequeo automático de políticas). En
 `admin_web`, una tarjeta de **utilidad** en reportes y el registro/listado de gastos.
 
 ## Contexto
@@ -35,5 +35,5 @@ operativos** y cerrar el cálculo: `utilidad = ingresos − gastos`.
   sumar). `ObtenerResumenFinancieroUseCase` combina `ReservaRepository.obtenerResumenVentas`
   (ingresos) y `GastoRepository.sumar` (gastos). La utilidad se expone como `BigDecimal` porque
   `Money.restar` prohíbe negativos y la utilidad sí puede serlo.
-- Migración `V25__gasto.sql`: tabla `gasto` con RLS `force`, política de aislamiento por tenant,
+- Migración `V26__gasto.sql`: tabla `gasto` con RLS `force`, política de aislamiento por tenant,
   índices `(tenant_id, fecha)` y `(sucursal_id)`, y grants a `lavadero_app`.
