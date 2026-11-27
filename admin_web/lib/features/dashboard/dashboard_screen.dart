@@ -4,6 +4,7 @@ import 'package:lavadero_core/lavadero_core.dart';
 
 import '../shared/widgets/resumen_ventas_view.dart';
 import 'application/dashboard_controller.dart';
+import 'widgets/tendencia_ventas.dart';
 
 /// Resumen de hoy: saludo, KPIs (ingresos, lavados, ticket promedio, servicio
 /// estrella) y ranking de servicios. Consume `/api/v1/agenda/reportes/resumen`.
@@ -27,9 +28,25 @@ class DashboardScreen extends ConsumerWidget {
             message: message,
             onRetry: controller.cargar,
           ),
-          DashboardState(resumen: final resumen?) => ResumenVentasView(
-            resumen: resumen,
-          ),
+          DashboardState(
+            resumen: final resumen?,
+            :final serie,
+            :final resumenAyer,
+          ) =>
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ResumenVentasView(resumen: resumen),
+                if (serie.length >= 2) ...[
+                  const SizedBox(height: LavaderoSpacing.lg),
+                  TendenciaVentas(
+                    serie: serie,
+                    hoy: resumen,
+                    ayer: resumenAyer,
+                  ),
+                ],
+              ],
+            ),
           _ => const SizedBox.shrink(),
         },
       ],
