@@ -37,7 +37,8 @@ public class ObtenerResumenFinancieroUseCase
     UUID sucursalId = input.alcance().resolverFiltro(input.sucursalId());
     Instant desde = input.desde().atStartOfDay(ZoneOffset.UTC).toInstant();
     Instant hasta = input.hasta().plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-    Money ingresos = reservaRepository.obtenerResumenVentas(desde, hasta, sucursalId).ingresosTotales();
+    Money ingresos =
+        reservaRepository.obtenerResumenVentas(desde, hasta, sucursalId).ingresosTotales();
     Money gastos = gastoRepository.sumar(input.desde(), input.hasta(), sucursalId);
     BigDecimal utilidad = ingresos.monto().subtract(gastos.monto());
     return new ResumenFinancieroDto(

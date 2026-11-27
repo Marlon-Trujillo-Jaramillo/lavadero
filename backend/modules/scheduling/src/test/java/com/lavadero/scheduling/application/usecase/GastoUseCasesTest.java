@@ -13,7 +13,6 @@ import com.lavadero.scheduling.application.dto.GastoDto;
 import com.lavadero.scheduling.application.dto.ResumenFinancieroDto;
 import com.lavadero.scheduling.domain.model.ResumenVentas;
 import com.lavadero.scheduling.domain.model.gasto.CategoriaGasto;
-import com.lavadero.scheduling.domain.model.gasto.Gasto;
 import com.lavadero.scheduling.domain.repository.GastoRepository;
 import com.lavadero.scheduling.domain.repository.ReservaRepository;
 import com.lavadero.shared.application.exception.ValidationException;
@@ -75,7 +74,8 @@ class GastoUseCasesTest {
         .thenReturn(new ResumenVentas(Money.cop(new BigDecimal("200000")), 5, List.of()));
     when(gastos.sumar(any(), any(), any())).thenReturn(Money.cop(new BigDecimal("50000")));
 
-    ResumenFinancieroDto dto = resumen().execute(query(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)));
+    ResumenFinancieroDto dto =
+        resumen().execute(query(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)));
 
     assertThat(dto.ingresos()).isEqualByComparingTo("200000");
     assertThat(dto.gastos()).isEqualByComparingTo("50000");
@@ -88,7 +88,8 @@ class GastoUseCasesTest {
         .thenReturn(new ResumenVentas(Money.cop(new BigDecimal("100000")), 2, List.of()));
     when(gastos.sumar(any(), any(), any())).thenReturn(Money.cop(new BigDecimal("150000")));
 
-    ResumenFinancieroDto dto = resumen().execute(query(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)));
+    ResumenFinancieroDto dto =
+        resumen().execute(query(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)));
 
     assertThat(dto.utilidad()).isEqualByComparingTo("-50000");
   }
