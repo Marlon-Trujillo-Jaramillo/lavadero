@@ -4,6 +4,7 @@ import 'package:lavadero_core/lavadero_core.dart';
 
 import '../shared/widgets/admin_page.dart';
 import '../shared/widgets/resumen_ventas_view.dart';
+import 'widgets/utilidad_view.dart';
 import 'application/reports_controller.dart';
 
 /// Rangos rápidos: últimos N días terminando hoy, o uno a medida.
@@ -121,24 +122,31 @@ class ReportsScreen extends ConsumerWidget {
         ),
         ReportsState(isLoading: true, resumen: null) =>
           const _ReportesSkeleton(),
-        ReportsState(resumen: final resumen?) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (state.isLoading)
-              const LinearProgressIndicator(minHeight: LavaderoSpacing.xxs)
-            else
-              const SizedBox(height: LavaderoSpacing.xxs),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(
-                  top: LavaderoSpacing.sm,
-                  bottom: LavaderoSpacing.xl,
+        ReportsState(resumen: final resumen?, :final finanzas, :final gastos) =>
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (state.isLoading)
+                const LinearProgressIndicator(minHeight: LavaderoSpacing.xxs)
+              else
+                const SizedBox(height: LavaderoSpacing.xxs),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.only(
+                    top: LavaderoSpacing.sm,
+                    bottom: LavaderoSpacing.xl,
+                  ),
+                  children: [
+                    ResumenVentasView(resumen: resumen),
+                    if (finanzas != null) ...[
+                      const SizedBox(height: LavaderoSpacing.xl),
+                      UtilidadView(finanzas: finanzas, gastos: gastos),
+                    ],
+                  ],
                 ),
-                children: [ResumenVentasView(resumen: resumen)],
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         _ => const SizedBox.shrink(),
       },
     );

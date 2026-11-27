@@ -18,6 +18,13 @@ void main() {
     serviciosMasPedidos: [],
   );
 
+  const finanzasVacio = ResumenFinanciero(
+    ingresos: 0,
+    gastos: 0,
+    utilidad: 0,
+    moneda: 'COP',
+  );
+
   setUp(() {
     schedulingRepository = MockSchedulingRepository();
     when(
@@ -26,9 +33,23 @@ void main() {
         hasta: any(named: 'hasta'),
       ),
     ).thenAnswer((_) async => resumenVacio);
+    when(
+      () => schedulingRepository.resumenFinanciero(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      ),
+    ).thenAnswer((_) async => finanzasVacio);
+    when(
+      () => schedulingRepository.listarGastos(
+        desde: any(named: 'desde'),
+        hasta: any(named: 'hasta'),
+      ),
+    ).thenAnswer((_) async => const <Gasto>[]);
 
     container = ProviderContainer(
-      overrides: [schedulingRepositoryProvider.overrideWithValue(schedulingRepository)],
+      overrides: [
+        schedulingRepositoryProvider.overrideWithValue(schedulingRepository),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -43,7 +64,9 @@ void main() {
     // `hasta` vienen de dos llamadas a `DateTime.now()` separadas por
     // microsegundos, así que `.difference(...).inDays` puede truncar a 5.
     final dias = DateTime(state.hasta.year, state.hasta.month, state.hasta.day)
-        .difference(DateTime(state.desde.year, state.desde.month, state.desde.day))
+        .difference(
+          DateTime(state.desde.year, state.desde.month, state.desde.day),
+        )
         .inDays;
     expect(dias, 6);
   });
@@ -66,11 +89,53 @@ void main() {
       ),
     ).thenAnswer((_) async => resumenEnero);
 
-    await container.read(reportsControllerProvider.notifier).cambiarRango(desde: desde, hasta: hasta);
+    await container
+        .read(reportsControllerProvider.notifier)
+        .cambiarRango(desde: desde, hasta: hasta);
 
     final state = container.read(reportsControllerProvider);
     expect(state.desde, desde);
     expect(state.hasta, hasta);
     expect(state.resumen?.totalReservasCompletadas, 5);
+  });
+
+  test('registrarGasto() guarda y recarga; sin error devuelve null', () async {
+    await Future<void>.delayed(Duration.zero);
+    final gasto = Gasto(
+      id: 'g1',
+      fecha: DateTime(2026, 11, 20),
+      categoria: CategoriaGasto.arriendo,
+      descripcion: 'Arriendo',
+      monto: 1200000,
+      moneda: 'COP',
+    );
+    final fecha = DateTime(2026, 11, 20);
+    when(
+      () => schedulingRepository.registrarGasto(
+        fecha: fecha,
+        categoria: CategoriaGasto.arriendo,
+        descripcion: 'Arriendo',
+        monto: 1200000,
+      ),
+    ).thenAnswer((_) async => gasto);
+
+    final error = await container
+        .read(reportsControllerProvider.notifier)
+        .registrarGasto(
+          fecha: fecha,
+          categoria: CategoriaGasto.arriendo,
+          descripcion: 'Arriendo',
+          monto: 1200000,
+        );
+
+    expect(error, isNull);
+    verify(
+      () => schedulingRepository.registrarGasto(
+        fecha: fecha,
+        categoria: CategoriaGasto.arriendo,
+        descripcion: 'Arriendo',
+        monto: 1200000,
+      ),
+    ).called(1);
   });
 }

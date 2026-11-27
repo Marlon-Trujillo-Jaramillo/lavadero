@@ -4,6 +4,7 @@ export 'checklist_item.dart';
 export 'checkout_pago.dart';
 export 'cliente_crm.dart';
 export 'empleado.dart';
+export 'gasto.dart';
 export 'incidencia.dart';
 export 'incidencia_categoria.dart';
 export 'inventario.dart';
